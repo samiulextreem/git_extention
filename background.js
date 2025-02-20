@@ -8,7 +8,13 @@ chrome.runtime.onInstalled.addListener(() => {
 //Listen for messages from content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "openPopup") {
-        chrome.action.openPopup();
+        chrome.windows.create({
+            url: chrome.runtime.getURL("popup.html"),
+            type: "popup",
+            width: 400,
+            height: 600
+        });
     }
 });
+
 

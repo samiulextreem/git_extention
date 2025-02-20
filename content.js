@@ -1,18 +1,16 @@
-function addButton() {
-    if (document.querySelector('.custom-chatgpt-button')) return;
-
+function createButton() {
     const button = document.createElement('button');
-    button.className = 'custom-chatgpt-button';
-    button.textContent = 'MY BUTTON';
+    button.textContent = 'Button'; // Button text
+    button.id = 'my-custom-button'; // Matches CSS ID selector
+    
+    // Remove inline styles
+    button.onclick = () => console.log('Clicked');
+    return button;
+}
 
-    button.addEventListener('click', () => {
-        console.log('Button clicked');
-    });
-
-    const targetElement = document.querySelector('nav');
-    if (targetElement) {
-        targetElement.appendChild(button);
-    }
+function addButton() {
+    document.body.appendChild(createButton());
+    console.log('Button added with CSS styling');
 }
 
 // Run the function when the page loads
