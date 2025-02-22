@@ -11,7 +11,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*"],
+      "matches": ["https://chatgpt.com/*", "https://x.com/*"],
       "js": ["content.js"],
       "css": ["style.css"]
     }
@@ -20,10 +20,7 @@
 
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
-  },
+  }
 
-  "web_accessible_resources": [{
-    "resources": ["style.css"],
-    "matches": ["<all_urls>"]
-  }]
+
 }
