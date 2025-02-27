@@ -11,12 +11,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*", "https://x.com/*"],
+      "matches": ["https://chatgpt.com/*"],
       "js": ["content.js"],
       "css": ["style.css"]
     }
   ],
-  "permissions": ["storage", "activeTab", "scripting", "identity"],
+  "permissions": ["storage", "activeTab", "scripting", "identity","tabs"],
 
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

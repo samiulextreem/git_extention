@@ -1,4 +1,4 @@
-#my-custom-button {
+#LOGINBUTTON {
     position: fixed !important;
     top: 20px !important;
     right: 20px !important;
@@ -11,6 +11,18 @@
     font-size: 16px !important;
 }
 
-#my-custom-button:hover {
-    background: #00cc00 !important;
+#LOGINBUTTON:hover {
+    background: #212c21 !important;
 } 
+
+.custom-square-btn {
+    width: 24px;
+    height: 24px;
+    margin-left: 8px;
+    background-color: transparent;
+    border: 1px solid #999;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
