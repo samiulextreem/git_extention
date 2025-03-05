@@ -1,7 +1,7 @@
 // This file can be used for background tasks if needed.
 // Currently, it can remain empty if no background functionality is required. 
 let popupWindowId = null; // Variable to store the popup window ID
-// clearExtentionstorage();
+clearExtentionstorage();
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Extension Installed");
 });
