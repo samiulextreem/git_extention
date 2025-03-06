@@ -54,7 +54,10 @@
 }
 
 .checkbox-list {
-    margin-bottom: 30px; /* Space below checkboxes */
+    margin-bottom: 30px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
 .checkbox-item {
@@ -114,3 +117,102 @@
 .overlay-ok-btn:hover {
     background-color: #0056b3; /* Darker blue on hover */
 }
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.overlay-checkbox {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.checkbox-label {
+    cursor: pointer;
+    user-select: none;
+    color: #333;
+}
+
+/* Optional: Style the checkbox when checked */
+.overlay-checkbox:checked + .checkbox-label {
+    font-weight: bold;
+}
+
+/* Selection Button Styles */
+.selection-btn {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background-color: #555;
+    border: 1px solid #999;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ddd;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+/* Create Folder Container Styles */
+.create-folder-container {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.folder-input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.create-folder-btn {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.create-folder-btn:hover {
+    background-color: #0056b3;
+}
+
+/* Display States */
+.custom-overlay[style*="display: none"] {
+    display: none !important;
+}
+
+.custom-overlay[style*="display: flex"] {
+    display: flex !important;
+}
+
+/* Selection Button Positioning */
+.selection-btn-positioned {
+    /* The actual position will be set dynamically via JavaScript */
+    /* This class is just a marker for the button that has been positioned */
+}
+
+.hidden-section {
+    display: none; /* Hides the element completely */
+    /* Alternatively, use opacity and visibility for a fade effect:
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    */
+  }
+  
+  /* If using opacity/visibility instead of display: none */
+  .hidden-section.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+
