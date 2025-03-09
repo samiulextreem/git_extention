@@ -215,4 +215,32 @@
     visibility: visible;
   }
 
+/* Simple Button Styles */
+#simple-button {
+    position: fixed;
+    bottom: 20px;
+    left: 70px;
+    z-index: 9999;
+    padding: 10px 15px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+}
+
+#simple-button:hover {
+    background-color: #3367d6;
+}
+
+
+canvas {
+    image-rendering: crisp-edges; /* Sharpens edges and prevents blurriness */
+    image-rendering: -webkit-optimize-contrast; /* Improve contrast in some browsers */
+    image-rendering: pixelated; /* Alternative for pixel-perfect rendering */
+  }
 

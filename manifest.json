@@ -12,11 +12,13 @@
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*"],
-      "js": ["content.js"],
+      "js": ["html2pdf.bundle.min.js","html2canvas.min.js","jspdf.min.js","content.js"],
       "css": ["style.css"]
     }
   ],
-  "permissions": ["storage", "activeTab", "scripting", "identity","tabs"],
+  "permissions": ["storage", "activeTab", "scripting", "identity","tabs","downloads"],
+  "host_permissions": ["<all_urls>"],
+  
 
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"

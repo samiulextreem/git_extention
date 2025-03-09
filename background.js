@@ -100,3 +100,34 @@ function updateUserFunctionality(email) {
   
 
 
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "download") {
+      chrome.downloads.download({
+        url: message.url,
+        filename: message.filename,
+        saveAs: true // Prompts the user to choose location
+      });
+    }
+  });
+
+
+
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "capture") {
+      console.log("Received capture request from content script");
+      chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
+        if (chrome.runtime.lastError) {
+          console.error("Capture error:", chrome.runtime.lastError.message);
+          sendResponse({ error: chrome.runtime.lastError.message });
+        } else if (!dataUrl) {
+          console.error("Capture failed: No image data returned");
+          sendResponse({ error: "No image data" });
+        } else {
+          console.log("Capture successful, sending data URL");
+          sendResponse({ dataUrl: dataUrl });
+        }
+      });
+      return true; // Keep the message port open
+    }
+  });
