@@ -1,10 +1,7 @@
 // This file can be used for background tasks if needed.
 // Currently, it can remain empty if no background functionality is required. 
 let popupWindowId = null; // Variable to store the popup window ID
-// clearExtentionstorage();
-chrome.runtime.onInstalled.addListener(() => {
-    console.log("Extension Installed");
-});
+clearExtentionstorage();
 
 
 // Listen for messages from content.js
@@ -14,18 +11,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         createPopupWindow();
     }
 
-    
     if (request.action === "updateTasksToDoAfterLogin") {
-        let email =  request.data;
+        let email = request.data;
         console.log('will update everything after login ');
         updateContentAndCreateButton();
         updateUserFunctionality(email);
-                
     }
-
 });
-
-
 
 
 // Helper function to create the popup window
@@ -41,8 +33,7 @@ function createPopupWindow() {
 }
 
 
-
-function clearExtentionstorage(){
+function clearExtentionstorage() {
     console.log('clearing storage from background');
     chrome.storage.sync.clear(() => {
         if (chrome.runtime.lastError) {
@@ -51,9 +42,7 @@ function clearExtentionstorage(){
             console.log("Sync storage cleared!");
         }
     });
-    
 }
-
 
 
 function updateContentAndCreateButton() {
@@ -76,7 +65,6 @@ function updateContentAndCreateButton() {
 }
 
 
-
 function updateUserFunctionality(email) {
     chrome.tabs.query({}, (tabs) => {
         if (tabs && tabs.length > 0) {
@@ -95,39 +83,34 @@ function updateUserFunctionality(email) {
         }
     });
 }
-  
-
-  
 
 
-
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "download") {
-      chrome.downloads.download({
-        url: message.url,
-        filename: message.filename,
-        saveAs: true // Prompts the user to choose location
-      });
+        chrome.downloads.download({
+            url: message.url,
+            filename: message.filename,
+            saveAs: true // Prompts the user to choose location
+        });
     }
-  });
+});
 
 
-
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "capture") {
-      console.log("Received capture request from content script");
-      chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
-        if (chrome.runtime.lastError) {
-          console.error("Capture error:", chrome.runtime.lastError.message);
-          sendResponse({ error: chrome.runtime.lastError.message });
-        } else if (!dataUrl) {
-          console.error("Capture failed: No image data returned");
-          sendResponse({ error: "No image data" });
-        } else {
-          console.log("Capture successful, sending data URL");
-          sendResponse({ dataUrl: dataUrl });
-        }
-      });
-      return true; // Keep the message port open
+        console.log("Received capture request from content script");
+        chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
+            if (chrome.runtime.lastError) {
+                console.error("Capture error:", chrome.runtime.lastError.message);
+                sendResponse({ error: chrome.runtime.lastError.message });
+            } else if (!dataUrl) {
+                console.error("Capture failed: No image data returned");
+                sendResponse({ error: "No image data" });
+            } else {
+                console.log("Capture successful, sending data URL");
+                sendResponse({ dataUrl: dataUrl });
+            }
+        });
+        return true; // Keep the message port open
     }
-  });
+});

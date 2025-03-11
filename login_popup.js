@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 	const messageDiv = document.getElementById('message');
 	const emailInput = document.getElementById('email');
+	
 	function requestMagicLink() {
 		const inputemail = emailInput.value;
 		if (!inputemail) {
@@ -17,61 +18,45 @@ document.addEventListener('DOMContentLoaded', () => {
 				requestMagicLinkForEmail(inputemail);
 			}
 		});
-
-		
-
-	};
-
+	}
 
 	async function checkAuthStatus(email) {
-
 		try {
-            const response = await fetch(`http://localhost:8080/api/get_auth_status?email=${encodeURIComponent(email)}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+			const response = await fetch(`http://localhost:8080/api/get_auth_status?email=${encodeURIComponent(email)}`, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
 
-			
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-
-            const data = await response.json();
-			
-			if (data.authenticated == true){
-				messageDiv.innerText = 'Log in successful';
-				console.log('log in successfull',data.authenticated);
-				mergeSyncAndUpdateChromeStorage(email, {});
-				chrome.runtime.sendMessage({ action: "updateTasksToDoAfterLogin" , data : email});
-				closePopup(2000);
+			if (!response.ok) {
+				throw new Error('Network response was not ok');
 			}
 
-        } catch (error) {
-            console.error('Error syncing data:', error);
-            throw error;
-        }
-
-         
-	
-	
-
+			const data = await response.json();
+			
+			if (data.authenticated == true) {
+				messageDiv.innerText = 'Log in successful';
+				console.log('log in successfull', data.authenticated);
+				mergeSyncAndUpdateChromeStorage(email, {});
+				chrome.runtime.sendMessage({ action: "updateTasksToDoAfterLogin", data: email });
+				closePopup(2000);
+			}
+		} catch (error) {
+			console.error('Error syncing data:', error);
+			throw error;
+		}
 	}
-  
 
-  	document.getElementById('requestButton').addEventListener('click', requestMagicLink);
-
+	document.getElementById('requestButton').addEventListener('click', requestMagicLink);
 
 	function closePopup(delay) {
 		setTimeout(() => {
-		window.close();
+			window.close();
 		}, delay); // Delay as parameter
 	}
 
-
-
-		// Function to sync data with the server
+	// Function to sync data with the server
 	async function pullDataFromFirebaseServer(email) {
 		try {
 			const response = await fetch(`http://localhost:8080/api/pull_data_from_firebase?email=${encodeURIComponent(email)}`, {
@@ -88,12 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
 			const data = await response.json();
 			return data;
 		} catch (error) {
-				console.error('Error syncing data:', error);
-				throw error;
+			console.error('Error syncing data:', error);
+			throw error;
 		}
 	}
-
-
 
 	function mergeSyncAndUpdateChromeStorage(useremail, existingData) {
 		pullDataFromFirebaseServer(useremail)
@@ -116,10 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			});
 	}
 
-
-
-
-
 	function requestMagicLinkForEmail(mail) {
 		fetch('http://localhost:8080/api/request_magic_link', {
 			method: 'POST',
@@ -134,9 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
 			checkAuthStatus(mail); // Initial call with parameter
 		});
 	}
-
-
-  
 });
 
 

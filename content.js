@@ -9,13 +9,16 @@ let currentChat = {
 let isSearchVisible = true;
 let overlayActvated = false;
 
+// Declare folders at the top level
+let folders = [
+    { name: "X", items: ["1", "2", "3"] },
+    { name: "Y", items: ["1", "2", "3"] },
+    { name: "Z", items: ["1", "2", "3"] }
+];
 
-
-createLogInButton(); // Call the renamed function to add the button
-addLoginButton();             // add log in button
 showButtonOnTextSelection();
 manageConversationButtonsAndTitles();
-
+pdfmaker();
 
 
 
@@ -48,6 +51,8 @@ function showButtonOnTextSelection() {
           selectionButton = document.createElement("button");
           selectionButton.classList.add("selection-btn");
           selectionButton.innerHTML = "★";
+
+
           selectionButton.setAttribute("aria-label", "Insert selected text");
 
           // Insert selected text into the text field in quotes, fully visible
@@ -184,30 +189,31 @@ function manageConversationButtonsAndTitles() {
         watchSlider(); // Run immediately if DOM is already loaded
     }
 }
-function updateFolderdata(checkedfolders,uncheckedfolders,chatTitle,chatHref,userData) {
-    //console.log(`[updatedFolderData] checked folders:  ${checkedfolders}  uncheckedfolders : ${uncheckedfolders}   chatTitle :  ${chatTitle}  chathref:  ${chatHref}`);
-    //need to make sure that the all the checked folder exist if not created 
+function updateFolderdata(checkedfolders, uncheckedfolders, chatTitle, chatHref, userData) {
+    // Ensure folderStructure is initialized
+    if (!userData.folder_structure.chatgpt) {
+        userData.folder_structure.chatgpt = { Folders: [] }; // Initialize if undefined
+    }
+    
+    // Ensure Folders is initialized
+    if (!userData.folder_structure.chatgpt.Folders) {
+        userData.folder_structure.chatgpt.Folders = []; // Initialize if undefined
+    }
+
     checkedfolders.forEach((folderName) => {
-        //console.log(`[updateFolderData] Checking folder for adding chat: "${folderName}"`);
-        const folderExists = userData.folderStructure.Folders.some(folder => folder.Folder_Name === folderName);
-        if (folderExists){
-            // console.log(`[updateFolderData] Folder "${folderName}" ${folderExists ? 'already exists' : 'does not exist'} in structure`);
-            // console.log(`[updateFolderData] Folder "${folderName}" needed to be updated with "${chatTitle}" and "${chatHref}"`);
-        }else{
-            //needed to create folder 
-            // console.log(`[updateFolderData] Folder "${folderName}" needed to be created and updated`);
+        const folderExists = userData.folder_structure.chatgpt.Folders.some(folder => folder.Folder_Name === folderName);
+        if (!folderExists) {
+            // Create folder if it doesn't exist
             const defaultFolderStructure = {
-                    "Folder_Name": folderName,
-                    "Chats": []
+                "Folder_Name": folderName,
+                "Chats": []
             };
-            userData.folderStructure.Folders.push(defaultFolderStructure);
+            userData.folder_structure.chatgpt.Folders.push(defaultFolderStructure);
         }
-        let folder = userData.folderStructure.Folders.find(f => f.Folder_Name === folderName);
-        let chatexist = folder.Chats.some(chat => chat.title === chatTitle);
-        if(chatexist){
-            // console.log(`[updateFolderData] chat "${chatTitle}" exist`);
-        }else{
-            // console.log(`[updateFolderData] chat "${chatTitle}" does not exist . adding new chat`);
+        
+        let folder = userData.folder_structure.chatgpt.Folders.find(f => f.Folder_Name === folderName);
+        let chatExists = folder.Chats.some(chat => chat.title === chatTitle);
+        if (!chatExists) {
             folder.Chats.push({
                 "title": chatTitle,
                 "href": chatHref
@@ -215,62 +221,56 @@ function updateFolderdata(checkedfolders,uncheckedfolders,chatTitle,chatHref,use
         }
     });
 
-    uncheckedfolders.forEach((folderName) =>{
-        //console.log(`[updatedFolderData] folder for unchecking chat:  ${folderName} `);
-        const folderExists = userData.folderStructure.Folders.some(folder => folder.Folder_Name === folderName);
-        if(folderExists){
-            //console.log(`[updatedFolderData] need to remove folder chat from ${folderName} `);
-
-            let folder = userData.folderStructure.Folders.find(f => f.Folder_Name === folderName);
-
+    uncheckedfolders.forEach((folderName) => {
+        const folderExists = userData.folder_structure.chatgpt.Folders.some(folder => folder.Folder_Name === folderName);
+        if (folderExists) {
+            let folder = userData.folder_structure.chatgpt.Folders.find(f => f.Folder_Name === folderName);
             if (folder) {
                 // Remove the chat by filtering out the matching title
                 folder.Chats = folder.Chats.filter(chat => chat.title !== chatTitle);
-        
-                //console.log(`Chat "${chatTitle}" removed from "${folderName}"`);
-            } else {
-                //console.error(`Folder "${chatTitle}" not found.`);
             }
-        }else{
-            //console.log(`[updatedFolderData] ${folderName} does not exist. so i wotn bother removing anything `);
         }
-
     });
 }
-    // Fetch data from Chrome storage (using your pullDataFromChromeStorage)
-async function fetchFromChromeStorage() {
-        try {
-            let response = await pullDataFromChromeStorage();
-            if (!response || !response.folderStructure || !response.folderStructure.Folders) {
-                // Initialize default folder structure if it doesn't exist
-                const defaultFolders = ["Work", "Personal", "Projects", "Misc"];
-                const defaultFolderStructure = {
-                                                    "Folders": defaultFolders.map(folder => ({
-                                                        "Folder_Name": folder,
-                                                        "Chats": []
-                                                    }))
-                                                };
-                chrome.storage.sync.set({ folderStructure: defaultFolderStructure }, () => {
-                });
-                //console.log("[Overlay] folder structure not found. pushing default folfers:", defaultFolders);
-                response = await pullDataFromChromeStorage();
-    
-            } else {
-                let folderNames = response.folderStructure.Folders.map(folder => folder.Folder_Name);
-                //console.log("[Overlay] folder structure already exist as shown here",folderNames);
-    
-            }
 
-            return response;
+async function fetchFromChromeStorage() {
+    try {
+        let response = await pullDataFromChromeStorage();
+        
+        // Check if response and its structure are defined
+        if (!response || !response.folder_structure || !response.folder_structure.chatgpt || !response.folder_structure.chatgpt.Folders) {
+            // Initialize default folder structure if it doesn't exist
+            const defaultFolders = ["Work", "Personal", "Projects", "Misc"];
+            const defaultFolderStructure = {
+                "folder_structure": {
+                    "chatgpt": {
+                        "Folders": defaultFolders.map(folder => ({
+                            "Folder_Name": folder,
+                            "Chats": []
+                        }))
+                    }
+                }
+            };
             
-        } catch (error) {
-            //console.error("[Overlay] Error fetching folders from Chrome storage:", error);
-            return ["Work", "Personal", "Projects", "Misc"]; // Fallback on error
+            // Save the default structure to Chrome storage
+            await chrome.storage.sync.set(defaultFolderStructure);
+            console.log("[Overlay] folder structure not found. Pushed default folders:", defaultFolders);
+            response = await pullDataFromChromeStorage(); // Fetch again after setting defaults
+        } else {
+            let folderNames = response.folder_structure.chatgpt.Folders.map(folder => folder.Folder_Name);
+            // console.log("[Overlay] folder structure already exists as shown here", folderNames);
         }
+
+        return response;
+        
+    } catch (error) {
+        console.error("[Overlay] Error fetching folders from Chrome storage:", error);
+        return { folder_structure: { chatgpt: { Folders: [] } } }; // Return a safe default structure
+    }
 }
 function getChatTitles(userData, folderName) {
     // Find the folder that matches the given folder name
-    const folder = userData.folderStructure.Folders.find(f => f.Folder_Name === folderName);
+    const folder = userData.folder_structure.chatgpt.Folders.find(f => f.Folder_Name === folderName);
 
     // Check if the folder exists and has chats
     if (folder && folder.Chats.length > 0) {
@@ -295,13 +295,14 @@ function pushToChromeStorage(data) {
 // Function to render all checkboxes
 async function renderCheckboxes(customFolders = [],checkboxList) {
     let rendercheckboxresponse = await fetchFromChromeStorage();
-    // console.log(`[renderCheckBoxes]`,JSON.stringify(rendercheckboxresponse));  
+    // console.log(`[renderCheckBoxes]`, JSON.stringify(rendercheckboxresponse, null, 2));
     checkboxList.innerHTML = ""; // Clear existing checkboxes
     // console.log('[rendercheckbox] chat title', currentChat.title);
     // console.log('[rendercheckbox] chat href',currentChat.href);
     // // Render fixed folders
 
-    fetchedFolders = rendercheckboxresponse.folderStructure?.Folders?.map(folder => folder.Folder_Name);
+    fetchedFolders = rendercheckboxresponse.folder_structure.chatgpt.Folders?.map(folder => folder.Folder_Name);
+
     // console.log(`[renderCheckBoxes] fetched folders are`, fetchedFolders);
     // console.log(`[renderCheckBoxes] custom folder passed are `, customFolders);
     fetchedFolders.push(...customFolders); // Spread operator to add multiple items
@@ -336,27 +337,22 @@ async function renderCheckboxes(customFolders = [],checkboxList) {
         checkboxList.appendChild(checkboxContainer);
     });
 }
-
-
-
-
 function manageChatManagementOverlay(action) {
-    let overlay = document.getElementById("custom-overlay");
+    let folderchoiceoverlay = document.getElementById("folderchoice-container");
     let customFolders = []; // Store custom folder options locally
+    
+
 
     if (action === "show") {
         overlayActvated = true;
-        //console.log("[Overlay] Showing overlay with data:", currentChat.href, currentChat.title); // Debug: Log incoming data
-        // Fetch initial folders from Chrome storage
         fetchFromChromeStorage().then(response => {
-            //console.log('[overlay] before the folder pushing',JSON.stringify(response, null, 2));
-            fetchedFolders = response.folderStructure?.Folders?.map(folder => folder.Folder_Name);
-            // console.log(fetchedFolders);
-            if (!overlay) {
+            // console.log('[overlay] before the folder pushing', JSON.stringify(response, null, 2));
+            fetchedFolders = response.folder_structure.chatgpt.Folders?.map(folder => folder.Folder_Name);
+            if (!folderchoiceoverlay) {
                 // Create overlay
-                overlay = document.createElement("div");
-                overlay.id = "custom-overlay";
-                overlay.className = "custom-overlay";
+                folderchoiceoverlay = document.createElement("div");
+                folderchoiceoverlay.id = "folderchoice-container";
+                folderchoiceoverlay.className = "folderchoice-overlay";
 
                 // Create message box
                 const messageBox = document.createElement("div");
@@ -366,9 +362,7 @@ function manageChatManagementOverlay(action) {
                 const checkboxList = document.createElement("div");
                 checkboxList.className = "checkbox-list";
                 messageBox.appendChild(checkboxList);
-              // Initial render of checkboxes
-                //console.log('[overlay] before the folder pushing',JSON.stringify(response));
-                renderCheckboxes(undefined,checkboxList);
+                renderCheckboxes(undefined, checkboxList);
 
                 // Add folder creation input and button
                 const createFolderContainer = document.createElement("div");
@@ -385,7 +379,7 @@ function manageChatManagementOverlay(action) {
                     const folderName = folderInput.value.trim();
                     if (folderName && !fetchedFolders.includes(folderName) && !customFolders.includes(folderName)) {
                         customFolders.push(folderName);
-                        renderCheckboxes(customFolders,checkboxList);
+                        renderCheckboxes(customFolders, checkboxList);
                         folderInput.value = ""; // Clear input
                         console.log("[Overlay] Added custom folder:", folderName); // Debug
                     } else if (!folderName) {
@@ -410,7 +404,7 @@ function manageChatManagementOverlay(action) {
                 `;
                 closeButton.addEventListener("click", () => {
                     overlayActvated = false;
-                    overlay.style.display = "none";
+                    folderchoiceoverlay.style.display = "none";
                 });
                 messageBox.appendChild(closeButton);
 
@@ -419,59 +413,44 @@ function manageChatManagementOverlay(action) {
                 okButton.className = "overlay-ok-btn";
                 okButton.textContent = "OK";
                 okButton.addEventListener("click", async () => {
-                    // console.log('chat title', currentChat.title);
-                    // console.log('chat href',currentChat.href);
                     const response = await fetchFromChromeStorage(); // Fetch data first
-                    const fetchedFolders = response.folderStructure.Folders.map(folder => folder.Folder_Name); // Extract folder names
+                    const fetchedFolders = response.folder_structure.chatgpt.Folders.map(folder => folder.Folder_Name);
                     const checkedFolder = Array.from(document.querySelectorAll(".overlay-checkbox:checked"))
                         .map(checkbox => checkbox.name);
-                    // console.log("[Overlay] Checked folder :", checkedFolder); // Debug: Log folder names
-                    // console.log("[overlay] fetched folder : ", fetchedFolders);
                     let difference = fetchedFolders.filter(folder => !checkedFolder.includes(folder));
-                    // console.log("Items in fetched folder but not in checked folder:", difference);
-                    updateFolderdata(checkedFolder,difference,currentChat.title,currentChat.href,response);
-                    // console.log('[overlay] after new folder pushing : ',JSON.stringify(response));
+                    updateFolderdata(checkedFolder, difference, currentChat.title, currentChat.href, response);
                     pushToChromeStorage(response);
                     currentChat.title = "";
                     currentChat.href = "";
-                    overlay.style.display = "none";
+                    folderchoiceoverlay.style.display = "none";
                     overlayActvated = false;
                     customFolders = [];
                 });
                 messageBox.appendChild(okButton);
 
-                overlay.appendChild(messageBox);
-                document.body.appendChild(overlay);
+                folderchoiceoverlay.appendChild(messageBox);
+                document.body.appendChild(folderchoiceoverlay);
             } else {
                 // Reset checkboxes and update if overlay exists
-                const checkboxList = overlay.querySelector(".checkbox-list");
-                const checkboxes = overlay.querySelectorAll(".overlay-checkbox");
+                const checkboxList = folderchoiceoverlay.querySelector(".checkbox-list");
+                const checkboxes = folderchoiceoverlay.querySelectorAll(".overlay-checkbox");
                 checkboxes.forEach(checkbox => {
                     checkbox.checked = false;
-                    //console.log("[Overlay] Reset checkbox:", checkbox.name); // Debug: Confirm reset
                 });
-                renderCheckboxes(undefined,checkboxList); // Re-render with current fixed and custom folders
+                renderCheckboxes(undefined, checkboxList); // Re-render with current fixed and custom folders
             }
 
             // Show overlay
-            overlay.style.display = "flex";
+            folderchoiceoverlay.style.display = "flex";
+            
         });
     }
+    
+
 }
-
-
-
-
-
 async function pullDataFromChromeStorage() {
     return new Promise((resolve) => {
         chrome.storage.sync.get(null, (stored_data) => {
-            if (stored_data.hasOwnProperty('useremail')) {
-                updateButtonText(stored_data['useremail']);
-            } else {
-                console.log("No existing user found. Will change the button to log in");
-                updateButtonText('login');
-            }
             resolve(stored_data); // Resolve with the data
         });
     });
@@ -548,46 +527,14 @@ async function pullDataFromFirebaseServer(email) {
 
 
 
-function createLogInButton() {
-    const button = document.createElement('button');
-    button.textContent = 'log in'; // Initial button text
-    button.id = 'LOGINBUTTON'; // ID used for reference
-    return button;
-}
-function addLoginButton() {
-    document.body.appendChild(createLogInButton());
-	console.log("login button added");
-}
-function updateButtonText(newText) {
-    const button = document.getElementById('LOGINBUTTON');
-    if (button) {
-        button.textContent = newText; // Update button text
-    }
-}
 
 
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "createLoginButton") {
-        addLoginButton(); // Call the renamed function to add the button
-    }
-
     if (request.action === "pullDataFromChromeStorage") {
         pullDataFromChromeStorage();
     }
-
-    if (request.action === "updateChatHistoryToFirebaseServer") {
-		let usermail = request.data;
-        // Example usage 
-        updateChatHistoryToFirebaseServer(usermail);
-    }
 });
-
-document.getElementById("LOGINBUTTON").addEventListener("click", () => {
-    chrome.runtime.sendMessage({ action: "openpopup" });
-});
-
-
 
 
 function hideFlexSection() {
@@ -596,7 +543,7 @@ function hideFlexSection() {
     if (flexSection && isSearchVisible == true) {
         isSearchVisible = false;
         // Store original display style
-        console.log(`should hid the ask box`);
+        // console.log(`should hid the ask box`);
         flexSection.dataset.originalDisplay = getComputedStyle(flexSection).display;
         
         // Animation setup
@@ -616,7 +563,7 @@ function showFlexSection() {
     const flexSection = document.querySelector("body > div.flex.h-full.w-full.flex-col > div > div.relative.flex.h-full.w-full.flex-row.overflow-hidden > div > main > div.composer-parent.flex.h-full.flex-col.focus-visible\\:outline-0 > div.isolate.w-full.has-\\[\\[data-has-thread-error\\]\\]\\:pt-2.has-\\[\\[data-has-thread-error\\]\\]\\:\\[box-shadow\\:var\\(--sharp-edge-bottom-shadow\\)\\].dark\\:border-white\\/20.md\\:border-transparent.md\\:pt-0.md\\:dark\\:border-transparent > div.text-base.mx-auto.px-3.md\\:px-4.w-full.md\\:px-5.lg\\:px-4.xl\\:px-5 > div");
     if (flexSection && isSearchVisible == false) {
         isSearchVisible = true;
-        console.log(`should show the ask box`);
+        // console.log(`should show the ask box`);
         // Initial state before animation
         flexSection.style.display = flexSection.dataset.originalDisplay || 'flex';
         flexSection.style.opacity = '0';
@@ -641,326 +588,409 @@ function showFlexSection() {
 
 
 
-// Use MutationObserver to handle dynamic DOM loading
-const domInitializer = new MutationObserver((mutations) => {
-    if (document.body) {
-      console.log("DOM ready, adding button and overlay");
-  
-      domInitializer.disconnect(); // Stop observing once body is found
-  
-      // Create the button to show overlay
-      const button = document.createElement("button");
-      button.textContent = "Show Overlay";
-      button.style.position = "fixed";
-      button.style.bottom = "20px";
-      button.style.right = "20px";
-      button.style.padding = "10px 20px";
-      button.style.backgroundColor = "#007bff";
-      button.style.color = "white";
-      button.style.border = "none";
-      button.style.borderRadius = "5px";
-      button.style.cursor = "pointer";
-      button.style.zIndex = "10001";
-      document.body.appendChild(button);
-  
-      // Create the overlay
-      const overlay = document.createElement("div");
-      overlay.style.position = "fixed";
-      overlay.style.top = "0";
-      overlay.style.right = "-300px"; // Start off-screen to the right
-      overlay.style.width = "300px";
-      overlay.style.height = "100%";
-      overlay.style.backgroundColor = "rgba(0, 0, 0, 0.5)"; // Semi-transparent black
-      overlay.style.transition = "right 0.5s ease, width 0.3s ease"; // Smooth slide and width change
-      overlay.style.zIndex = "10000";
-      overlay.style.overflowY = "auto"; // Scroll if content overflows
-      document.body.appendChild(overlay);
-  
-      // Create draggable handle
-      const handle = document.createElement("div");
-      handle.style.position = "absolute";
-      handle.style.top = "0";
-      handle.style.left = "-10px";
-      handle.style.width = "10px";
-      handle.style.height = "100%";
-      handle.style.cursor = "ew-resize";
-      handle.style.backgroundColor = "rgba(255, 255, 255, 0.3)";
-      overlay.appendChild(handle);
-  
-      // Create close button
-      const closeButton = document.createElement("button");
-      closeButton.textContent = "×";
-      closeButton.style.position = "absolute";
-      closeButton.style.top = "10px";
-      closeButton.style.right = "10px";
-      closeButton.style.padding = "5px";
-      closeButton.style.backgroundColor = "#ff4444";
-      closeButton.style.color = "white";
-      closeButton.style.border = "none";
-      closeButton.style.borderRadius = "50%";
-      closeButton.style.cursor = "pointer";
-      closeButton.style.zIndex = "10002";
-      overlay.appendChild(closeButton);
-  
-      // Create button to add new folder
-      const addFolderButton = document.createElement("button");
-      addFolderButton.textContent = "Add Folder";
-      addFolderButton.style.position = "absolute";
-      addFolderButton.style.top = "10px";
-      addFolderButton.style.left = "10px";
-      addFolderButton.style.padding = "5px 10px";
-      addFolderButton.style.backgroundColor = "#28a745";
-      addFolderButton.style.color = "white";
-      addFolderButton.style.border = "none";
-      addFolderButton.style.borderRadius = "5px";
-      addFolderButton.style.cursor = "pointer";
-      addFolderButton.style.zIndex = "10002";
-      overlay.appendChild(addFolderButton);
-  
-      // Create folder structure inside overlay
-      const folders = [
-        { name: "X", items: ["1", "2", "3"] },
-        { name: "Y", items: ["1", "2", "3"] },
-        { name: "Z", items: ["1", "2", "3"] }
-      ];
-  
-      const folderContainer = document.createElement("div");
-      folderContainer.style.padding = "20px";
-      folderContainer.style.color = "white";
-      folderContainer.style.paddingTop = "50px"; // Space for the add button
-  
-      function renderFolders() {
+// Function to create menu button and overlay
+function createMenuButton() {
+    // Create the button to show overlay
+    const menubutton = document.createElement("button");
+    menubutton.innerHTML = '<span class="menu-icon"></span>';
+    menubutton.className = "menubutton";
+    document.body.appendChild(menubutton);
+
+    // Create the overlay
+    const menuoverlay = document.createElement("div");
+    menuoverlay.className = "overlay-container";
+    document.body.appendChild(menuoverlay);
+
+    // Create draggable handle
+    const handle = document.createElement("div");
+    handle.className = "overlay-handle";
+    menuoverlay.appendChild(handle);
+
+    // Create login button and add it to the overlay
+    const loginButton = document.createElement("button");
+    loginButton.className = "login-folder-button";
+    loginButton.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+        </svg>
+    `;
+    loginButton.id = 'LOGINBUTTON';
+    loginButton.addEventListener("click", () => {
+        chrome.runtime.sendMessage({ action: "openpopup" });
+    });
+    menuoverlay.appendChild(loginButton);
+
+    // Create button to add new folder
+    const addFolderButton = document.createElement("button");
+    addFolderButton.className = "add-folder-button";
+    addFolderButton.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v11z"/>
+            <line x1="12" y1="11" x2="12" y2="17"/>
+            <line x1="9" y1="14" x2="15" y2="14"/>
+        </svg>
+    `;
+    menuoverlay.appendChild(addFolderButton);
+
+    // Create folder container
+    const folderContainer = document.createElement("div");
+    folderContainer.className = "folder-container";
+    menuoverlay.appendChild(folderContainer);
+
+    // Function to render folders
+    function renderFolders() {
         folderContainer.innerHTML = ""; // Clear existing folders
+        
+        // Create the print button (initially hidden)
+        const printButton = document.createElement("button");
+        printButton.className = "print-checked-button";
+        printButton.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Print Selected</span>
+        `;
+        printButton.style.display = "none";
+        printButton.addEventListener("click", printCheckedFolders);
+        folderContainer.appendChild(printButton);
+        
         folders.forEach((folder, index) => {
-          const folderDiv = document.createElement("div");
-          folderDiv.style.marginBottom = "15px";
-          folderDiv.style.position = "relative"; // For positioning dropdown
-  
-          // Folder header with icon
-          const folderHeaderWrapper = document.createElement("div");
-          folderHeaderWrapper.style.display = "flex";
-          folderHeaderWrapper.style.alignItems = "center";
-  
-          const folderHeader = document.createElement("h3");
-          folderHeader.textContent = folder.name;
-          folderHeader.style.cursor = "pointer";
-          folderHeader.style.margin = "0";
-          folderHeader.style.padding = "5px";
-          folderHeader.style.backgroundColor = "#333";
-          folderHeader.style.flex = "1";
-          folderHeader.addEventListener("click", (e) => {
-            // Prevent toggling when clicking the input field
-            if (e.target.tagName !== "INPUT") {
-              toggleFolder(folderDiv, folderHeader);
-            }
-          });
-  
-          // Options icon (three dots)
-          const optionsIcon = document.createElement("span");
-          optionsIcon.textContent = "⋮";
-          optionsIcon.style.cursor = "pointer";
-          optionsIcon.style.padding = "5px";
-          optionsIcon.style.fontSize = "20px";
-          optionsIcon.style.color = "white";
-          optionsIcon.addEventListener("click", (e) => toggleOptionsMenu(e, folderDiv, index));
-  
-          folderHeaderWrapper.appendChild(folderHeader);
-          folderHeaderWrapper.appendChild(optionsIcon);
-  
-          // Dropdown menu for options
-          const optionsMenu = document.createElement("div");
-          optionsMenu.className = "options-menu";
-          optionsMenu.style.position = "absolute";
-          optionsMenu.style.top = "30px";
-          optionsMenu.style.right = "0";
-          optionsMenu.style.backgroundColor = "#444";
-          optionsMenu.style.borderRadius = "5px";
-          optionsMenu.style.boxShadow = "0 2px 5px rgba(0, 0, 0, 0.3)";
-          optionsMenu.style.display = "none";
-          optionsMenu.style.zIndex = "10003";
-  
-          const renameOption = document.createElement("div");
-          renameOption.textContent = "Rename";
-          renameOption.style.padding = "5px 10px";
-          renameOption.style.cursor = "pointer";
-          renameOption.style.color = "white";
-          renameOption.addEventListener("click", () => {
-            // Replace folder name with input field
-            const input = document.createElement("input");
-            input.type = "text";
-            input.value = folder.name;
-            input.style.width = "80%";
-            input.style.padding = "5px";
-            input.style.margin = "0";
-            input.style.backgroundColor = "#555";
-            input.style.color = "white";
-            input.style.border = "none";
-            input.style.outline = "none";
-  
-            // Replace header content with input
-            folderHeader.textContent = "";
-            folderHeader.appendChild(input);
-            input.focus();
-  
-            // Save on Enter or blur
-            input.addEventListener("keydown", (e) => {
-              if (e.key === "Enter") {
-                saveNewName(input.value, index);
+            const folderDiv = document.createElement("div");
+            folderDiv.className = "folder-item";
+            folderDiv.dataset.index = index;
+
+            // Folder header with icon
+            const folderHeaderWrapper = document.createElement("div");
+            folderHeaderWrapper.className = "folder-header-wrapper";
+            
+            // Add checkbox
+            const folderCheckbox = document.createElement("input");
+            folderCheckbox.type = "checkbox";
+            folderCheckbox.className = "folder-checkbox";
+            folderCheckbox.addEventListener("change", updatePrintButton);
+            
+            const folderHeader = document.createElement("div");
+            folderHeader.className = "folder-header";
+            folderHeader.addEventListener("click", (e) => {
+                // Prevent toggling when clicking the input field or checkbox
+                if (e.target.tagName !== "INPUT") {
+                    toggleFolder(folderDiv, folderHeader);
+                }
+            });
+            
+            // Add folder icon
+            const folderIcon = document.createElement("span");
+            folderIcon.className = "folder-icon";
+            folderIcon.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+            `;
+            
+            // Add folder name
+            const folderName = document.createElement("span");
+            folderName.textContent = folder.name;
+            folderName.className = "folder-name";
+            
+            folderHeader.appendChild(folderIcon);
+            folderHeader.appendChild(folderName);
+
+            // Options icon (three dots)
+            const optionsIcon = document.createElement("span");
+            optionsIcon.className = "options-icon";
+            optionsIcon.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="1" />
+                    <circle cx="12" cy="5" r="1" />
+                    <circle cx="12" cy="19" r="1" />
+                </svg>
+            `;
+            optionsIcon.addEventListener("click", (e) => toggleOptionsMenu(e, folderDiv, index));
+
+            folderHeaderWrapper.appendChild(folderCheckbox);
+            folderHeaderWrapper.appendChild(folderHeader);
+            folderHeaderWrapper.appendChild(optionsIcon);
+
+            // Dropdown menu for options
+            const optionsMenu = document.createElement("div");
+            optionsMenu.className = "options-menu";
+
+            const renameOption = document.createElement("div");
+            renameOption.className = "options-menu-item";
+            renameOption.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>Rename</span>
+            `;
+            renameOption.addEventListener("click", () => {
+                // Replace folder name with input field
+                const input = document.createElement("input");
+                input.type = "text";
+                input.value = folder.name;
+                input.className = "folder-rename-input";
+
+                // Replace folder name with input
+                folderName.textContent = "";
+                folderName.appendChild(input);
+                input.focus();
+
+                // Save on Enter or blur
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        saveNewName(input.value, index);
+                        renderFolders();
+                    }
+                });
+                input.addEventListener("blur", () => {
+                    saveNewName(input.value, index);
+                    renderFolders();
+                });
+
+                optionsMenu.style.display = "none";
+            });
+
+            const deleteOption = document.createElement("div");
+            deleteOption.className = "options-menu-item";
+            deleteOption.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+                <span>Delete</span>
+            `;
+            deleteOption.addEventListener("click", () => {
+                // Delete the folder immediately
+                folders.splice(index, 1);
                 renderFolders();
-              }
+                optionsMenu.style.display = "none";
             });
-            input.addEventListener("blur", () => {
-              saveNewName(input.value, index);
-              renderFolders();
+
+            optionsMenu.appendChild(renameOption);
+            optionsMenu.appendChild(deleteOption);
+            folderDiv.appendChild(optionsMenu);
+
+            const itemList = document.createElement("ul");
+            itemList.className = "folder-item-list";
+
+            folder.items.forEach(item => {
+                const listItem = document.createElement("li");
+                
+                const itemIcon = document.createElement("span");
+                itemIcon.className = "item-icon";
+                itemIcon.innerHTML = `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                `;
+                
+                const itemLink = document.createElement("a");
+                itemLink.href = "https://www.google.com";
+                itemLink.textContent = item;
+                itemLink.className = "folder-item-link";
+                itemLink.target = "_blank";
+
+                listItem.appendChild(itemIcon);
+                listItem.appendChild(itemLink);
+                itemList.appendChild(listItem);
             });
-  
-            optionsMenu.style.display = "none";
-          });
-  
-          const deleteOption = document.createElement("div");
-          deleteOption.textContent = "Delete";
-          deleteOption.style.padding = "5px 10px";
-          deleteOption.style.cursor = "pointer";
-          deleteOption.style.color = "white";
-          deleteOption.addEventListener("click", () => {
-            // Delete the folder immediately
-            folders.splice(index, 1);
-            renderFolders();
-            optionsMenu.style.display = "none";
-          });
-  
-          optionsMenu.appendChild(renameOption);
-          optionsMenu.appendChild(deleteOption);
-          folderDiv.appendChild(optionsMenu);
-  
-          const itemList = document.createElement("ul");
-          itemList.style.listStyle = "none";
-          itemList.style.padding = "0";
-          itemList.style.maxHeight = "0";
-          itemList.style.overflow = "hidden";
-          itemList.style.transition = "max-height 0.3s ease";
-  
-          folder.items.forEach(item => {
-            const itemLink = document.createElement("a");
-            itemLink.href = "https://www.google.com";
-            itemLink.textContent = item;
-            itemLink.style.color = "white";
-            itemLink.style.textDecoration = "none";
-            itemLink.style.display = "block";
-            itemLink.style.padding = "5px";
-            itemLink.target = "_blank";
-  
-            const listItem = document.createElement("li");
-            listItem.appendChild(itemLink);
-            itemList.appendChild(listItem);
-          });
-  
-          folderDiv.appendChild(folderHeaderWrapper);
-          folderDiv.appendChild(itemList);
-          folderContainer.appendChild(folderDiv);
+
+            folderDiv.appendChild(folderHeaderWrapper);
+            folderDiv.appendChild(itemList);
+            folderContainer.appendChild(folderDiv);
         });
-      }
-  
-      renderFolders();
-      overlay.appendChild(folderContainer);
-  
-      // Add new folder on button click
-      addFolderButton.addEventListener("click", () => {
-        const newFolder = { name: "New Folder", items: ["1", "2", "3"] };
-        folders.push(newFolder);
-        renderFolders();
-      });
-  
-      // Toggle folder visibility function
-      function toggleFolder(folderDiv, header) {
-        const itemList = folderDiv.querySelector("ul");
+    }
+
+    // Toggle folder visibility function
+    function toggleFolder(folderDiv, header) {
+        const itemList = folderDiv.querySelector(".folder-item-list");
         if (itemList.style.maxHeight === "0px" || itemList.style.maxHeight === "") {
-          itemList.style.maxHeight = itemList.scrollHeight + "px";
-          header.style.backgroundColor = "#555";
+            itemList.style.maxHeight = itemList.scrollHeight + "px";
+            header.classList.add("folder-header-expanded");
         } else {
-          itemList.style.maxHeight = "0";
-          header.style.backgroundColor = "#333";
+            itemList.style.maxHeight = "0";
+            header.classList.remove("folder-header-expanded");
         }
-      }
-  
-      // Save new folder name
-      function saveNewName(newName, index) {
+    }
+
+    // Save new folder name
+    function saveNewName(newName, index) {
         if (newName.trim()) {
-          folders[index].name = newName.trim();
+            folders[index].name = newName.trim();
         }
-      }
-  
-      // Toggle options menu
-      function toggleOptionsMenu(e, folderDiv, index) {
+    }
+
+    // Toggle options menu
+    function toggleOptionsMenu(e, folderDiv, index) {
         e.stopPropagation(); // Prevent folder collapse/expand
+        
+        // First, ensure the folder is expanded
+        const folderHeader = folderDiv.querySelector(".folder-header");
+        const itemList = folderDiv.querySelector(".folder-item-list");
+        
+        // Always expand the folder when clicking the options icon
+        if (itemList.style.maxHeight === "0px" || itemList.style.maxHeight === "") {
+            itemList.style.maxHeight = itemList.scrollHeight + "px";
+            folderHeader.classList.add("folder-header-expanded");
+        }
+        
+        // Then toggle the options menu
         const optionsMenu = folderDiv.querySelector(".options-menu");
         if (optionsMenu.style.display === "block") {
-          optionsMenu.style.display = "none";
+            optionsMenu.style.display = "none";
         } else {
-          // Close other open menus
-          document.querySelectorAll(".options-menu").forEach(menu => {
-            menu.style.display = "none";
-          });
-          optionsMenu.style.display = "block";
+            // Close other open menus
+            document.querySelectorAll(".options-menu").forEach(menu => {
+                menu.style.display = "none";
+            });
+            optionsMenu.style.display = "block";
         }
-      }
-  
-      // Draggable handle functionality
-      let isDragging = false;
-      let startX;
-      handle.addEventListener("mousedown", (e) => {
+    }
+
+    // Variable to track if dragging is in progress
+    let isDragging = false;
+
+    // Add event listeners for dragging
+    let startX;
+    handle.addEventListener("mousedown", (e) => {
         isDragging = true;
         startX = e.clientX;
-        overlay.style.transition = "none"; // Disable transition during drag
-      });
-  
-      document.addEventListener("mousemove", (e) => {
+        menuoverlay.style.transition = "none"; // Disable transition during drag
+    });
+
+    document.addEventListener("mousemove", (e) => {
         if (isDragging) {
-          const diffX = startX - e.clientX;
-          let newWidth = parseInt(overlay.style.width) - diffX;
-          if (newWidth < 200) newWidth = 200; // Minimum width
-          if (newWidth > window.innerWidth - 50) newWidth = window.innerWidth - 50; // Maximum width
-          overlay.style.width = newWidth + "px";
-          startX = e.clientX;
+            const diffX = startX - e.clientX;
+            let newWidth = parseInt(menuoverlay.style.width || "300") - diffX;
+            if (newWidth < 200) newWidth = 200; // Minimum width
+            if (newWidth > window.innerWidth - 50) newWidth = window.innerWidth - 50; // Maximum width
+            menuoverlay.style.width = newWidth + "px";
+            startX = e.clientX;
         }
-      });
-  
-      document.addEventListener("mouseup", () => {
+    });
+
+    document.addEventListener("mouseup", () => {
         if (isDragging) {
-          isDragging = false;
-          overlay.style.transition = "right 0.5s ease, width 0.3s ease"; // Re-enable transition
+            isDragging = false;
+            menuoverlay.style.transition = "right 0.5s ease, width 0.3s ease"; // Re-enable transition
         }
-      });
-  
-      // Toggle overlay on button click
-      button.addEventListener("click", function () {
-        if (overlay.style.right === "0px") {
-          overlay.style.right = "-300px"; // Slide out
+    });
+
+    // Toggle overlay on button click
+    menubutton.addEventListener("click", function () {
+        console.log(`menu button is clicked`);
+        // Get computed style to check actual position regardless of how it was set
+        const computedStyle = window.getComputedStyle(menuoverlay);
+        const currentRight = parseInt(computedStyle.right);
+        
+        if (currentRight >= 0 || menuoverlay.style.right === "0px" || menuoverlay.style.right === "0") {
+            // Ensure consistent units and handle edge cases
+            menuoverlay.style.right = "-300px"; // Slide out
+            console.log(`[menubutton] sliding out of screen`);
         } else {
-          overlay.style.right = "0"; // Slide in
+            // Force overlay to be visible first
+            menuoverlay.style.display = "block";
+            // Small delay to ensure display change is processed
+            setTimeout(() => {
+                menuoverlay.style.right = "0px"; // Slide in with explicit units
+                console.log(`[menubutton] sliding into screen`);
+            }, 10);
         }
-      });
-  
-      // Close overlay when clicking outside
-      document.addEventListener("click", (e) => {
-        if (!overlay.contains(e.target) && overlay.style.right === "0px" && e.target !== button) {
-          overlay.style.right = "-300px"; // Slide out if clicked outside
+    });
+
+    // Close overlay when clicking outside
+    document.addEventListener("click", (e) => {
+        if (!menuoverlay.contains(e.target) && menuoverlay.style.right === "0px" && e.target !== menubutton) {
+            menuoverlay.style.right = "-300px"; // Slide out if clicked outside
         }
         // Close any open options menus
         document.querySelectorAll(".options-menu").forEach(menu => {
-          menu.style.display = "none";
+            menu.style.display = "none";
         });
-      });
-  
-      // Close overlay with close button
-      closeButton.addEventListener("click", () => {
-        overlay.style.right = "-300px"; // Slide out
-      });
+    });
+
+    // Add folder button functionality
+    addFolderButton.addEventListener("click", () => {
+        // Create a new folder with a default name
+        const defaultName = "New Folder";
+        const newFolder = { name: defaultName, items: [] };
+        
+        // Add to folders array
+        folders.push(newFolder);
+        
+        // Render folders to update the DOM
+        renderFolders();
+        
+        // Find the newly added folder element
+        const folderElements = document.querySelectorAll(".folder-item");
+        const newFolderElement = folderElements[folderElements.length - 1];
+        
+        if (newFolderElement) {
+            const folderHeader = newFolderElement.querySelector(".folder-header");
+            
+            // Create input field for immediate editing
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = defaultName;
+            input.className = "folder-rename-input";
+            
+            // Replace header content with input
+            folderHeader.textContent = "";
+            folderHeader.appendChild(input);
+            
+            // Focus the input field
+            setTimeout(() => input.focus(), 10);
+            
+            // Save on Enter or blur
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    saveNewName(input.value, folders.length - 1);
+                    renderFolders();
+                }
+            });
+            
+            input.addEventListener("blur", () => {
+                saveNewName(input.value, folders.length - 1);
+                renderFolders();
+            });
+        }
+    });
+    // Initial render
+    renderFolders();
+
+    // Return the created elements for potential future reference
+    return {
+        menubutton,
+        menuoverlay,
+        handle,
+        addFolderButton,
+        folderContainer,
+        renderFolders,
+        loginButton
+    };
+}
+
+// Use MutationObserver to handle dynamic DOM loading
+const domObserver = new MutationObserver((mutations) => {
+    if (document.body) {
+        console.log("DOM ready, adding button and overlay");
+        domObserver.disconnect(); // Stop observing once body is found
+        
+        // Call the function to create menu button and overlay
+        const menuElements = createMenuButton();
     }
-  });
-  
-  // Start observing the document for changes
-  domInitializer.observe(document.documentElement, { childList: true, subtree: true });
+});
+
+// Start observing the document for changes
+domObserver.observe(document.documentElement, { childList: true, subtree: true });
 
 
 
@@ -1001,48 +1031,38 @@ domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree
 
 
 //==================================================================//
-// Assume html2pdf.bundle.min.js is included in your extension
-// Assume html2pdf.bundle.min.js is included in your extension via manifest.json
+
 
 // Function to generate and download the PDF
 
   // Create and style the button
-function createButton() {
+function pdfmaker() {
     const button = document.createElement("button");
-    button.textContent = "Download PDF";
     button.id = "pdf-download-btn"; // Unique ID to avoid duplicates
-  
-    // Style the button (fixed top-left position)
-    button.style.position = "fixed";
-    button.style.top = "10px";
-    button.style.left = "60px";
-    button.style.zIndex = "9999"; // Ensure it’s on top of other content
-    button.style.padding = "8px 12px";
-    button.style.backgroundColor = "#4CAF50"; // Green background
-    button.style.color = "white";
-    button.style.border = "none";
-    button.style.borderRadius = "4px";
-    button.style.cursor = "pointer";
-    button.style.fontFamily = "Arial, sans-serif";
-  
-    // Add hover effect
-    button.onmouseover = () => (button.style.backgroundColor = "#45a049");
-    button.onmouseout = () => (button.style.backgroundColor = "#4CAF50");
+    
+    // Create PDF icon using SVG instead of text
+    button.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
+    `;
   
     // Add click event to trigger PDF generation
-    button.addEventListener("click", () =>{
+    button.addEventListener("click", () => {
         scrollToEndAndCreatePDF();
-
     });
 
-    // Append the button to the body (only if it doesn’t already exist)
+    // Append the button to the body (only if it doesn't already exist)
     if (!document.getElementById("pdf-download-btn")) {
-      document.body.appendChild(button);
+        document.body.appendChild(button);
     }
 }
   
 // Execute the button creation when the script loads
-createButton();
+
 
 
 
@@ -1190,4 +1210,32 @@ async function scrollToEndAndCreatePDF(options = {}) {
 
     doc.save(`${fileName}.pdf`);
     console.log(`Saved complete document as ${fileName}.pdf`);
+}
+
+// Function to update print button visibility
+function updatePrintButton() {
+    const checkedFolders = document.querySelectorAll('.folder-checkbox:checked');
+    const printButton = document.querySelector('.print-checked-button');
+    
+    if (checkedFolders.length > 0) {
+        printButton.style.display = "flex";
+        printButton.querySelector('span').textContent = `Print Selected (${checkedFolders.length})`;
+    } else {
+        printButton.style.display = "none";
+    }
+}
+
+// Function to print checked folders to console
+function printCheckedFolders() {
+    const checkedFolders = document.querySelectorAll('.folder-checkbox:checked');
+    const selectedFolders = [];
+    
+    checkedFolders.forEach(checkbox => {
+        const folderDiv = checkbox.closest('.folder-item');
+        const index = parseInt(folderDiv.dataset.index);
+        selectedFolders.push(folders[index]);
+    });
+    
+    console.log('Selected Folders:', selectedFolders);
+    alert(`Printed ${selectedFolders.length} folders to console. Check browser console.`);
 }
