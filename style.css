@@ -16,77 +16,341 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7); /* Darker semi-transparent background */
+    background-color: rgba(0, 0, 0, 0.75); /* Slightly darker for premium feel */
+    backdrop-filter: blur(8px); /* Blur background for premium effect */
+    -webkit-backdrop-filter: blur(8px); /* For Safari */
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .overlay-message-box {
-    background-color: #f8f8f8; /* White background for contrast */
-    color: #333; /* Dark text for readability */
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(171, 193, 77, 0.2);
-    width: 350px;
-    max-height: 80vh;
-    overflow-y: auto;
+    background-color: rgba(30, 32, 35, 0.9); /* Dark semi-transparent background */
+    color: #e0e0e0; /* Light text for readability on dark background */
+    padding: 35px;
+    border-radius: 16px;
+    border: 1px solid rgba(66, 153, 225, 0.5); /* Subtle blue border */
+    box-shadow: 
+        0 10px 25px rgba(0, 0, 0, 0.3),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 0 30px rgba(66, 153, 225, 0.2); /* Subtle blue glow */
+    max-width: 650px; /* Increased width to accommodate grid */
+    width: 90%;
     position: relative;
-    font-family: Arial, sans-serif;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    backdrop-filter: blur(5px);
 }
 
 .checkbox-list {
-    margin-bottom: 30px;
-    max-height: 300px;
+    margin-bottom: 50px;
+    max-height: 350px; /* Increased height */
     overflow-y: auto;
-    padding-right: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(66, 153, 225, 0.5) rgba(30, 32, 35, 0.3);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+    padding: 10px 5px;
+}
+
+/* Custom scrollbar for Webkit browsers */
+.checkbox-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.checkbox-list::-webkit-scrollbar-track {
+    background: rgba(30, 32, 35, 0.3);
+    border-radius: 10px;
+}
+
+.checkbox-list::-webkit-scrollbar-thumb {
+    background-color: rgba(66, 153, 225, 0.5);
+    border-radius: 10px;
 }
 
 .checkbox-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    margin: 15px 0; /* Vertical spacing between items */
+    justify-content: center;
+    background-color: rgba(40, 44, 52, 0.6);
+    border-radius: 12px;
+    padding: 15px 10px;
+    transition: all 0.2s ease;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.checkbox-item:hover {
+    transform: translateY(-3px);
+    background-color: rgba(50, 54, 62, 0.8);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(66, 153, 225, 0.3);
+}
+
+.checkbox-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(66, 153, 225, 0), rgba(66, 153, 225, 0.8), rgba(66, 153, 225, 0));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.checkbox-item:hover::before {
+    opacity: 1;
+}
+
+.folder-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    color: rgba(255, 255, 255, 0.8);
+    transition: all 0.2s ease;
+}
+
+.checkbox-item:hover .folder-icon-wrapper {
+    color: rgba(66, 153, 225, 0.9);
+    transform: scale(1.1);
+}
+
+.folder-icon-wrapper svg {
+    width: 100%;
+    height: 100%;
 }
 
 .overlay-checkbox {
-    margin-right: 10px; /* Space between checkbox and label */
-    width: 20px;
-    height: 20px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 18px;
+    height: 18px;
     cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(66, 153, 225, 0.5);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+
+.overlay-checkbox:checked {
+    background-color: rgba(66, 153, 225, 0.8);
+    border-color: rgba(66, 153, 225, 0.8);
+}
+
+.overlay-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 .checkbox-label {
-    font-size: 18px;
+    font-size: 14px;
+    text-align: center;
     cursor: pointer;
     transition: color 0.2s ease;
+    letter-spacing: 0.3px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 5px;
 }
 
-.checkbox-label:hover {
-    color: #007bff; /* Blue hover effect */
+.checkbox-item:hover .checkbox-label {
+    color: rgba(66, 153, 225, 1);
+}
+
+.checkbox-item.selected {
+    background-color: rgba(66, 153, 225, 0.15);
+    border-color: rgba(66, 153, 225, 0.5);
+}
+
+.checkbox-item.selected .folder-icon-wrapper {
+    color: rgba(66, 153, 225, 1);
 }
 
 .overlay-ok-btn {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    padding: 10px 20px;
-    background-color: #007bff; /* Blue button */
+    bottom: 15px;
+    right: 15px;
+    width: 48px;
+    height: 48px;
+    background-color: rgba(66, 153, 225, 0.8);
     color: #fff;
     border: none;
-    border-radius: 6px;
+    border-radius: 50%;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .overlay-ok-btn:hover {
-    background-color: #0056b3; /* Darker blue on hover */
+    background-color: rgba(66, 153, 225, 1);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Optional: Style the checkbox when checked */
-.overlay-checkbox:checked + .checkbox-label {
-    font-weight: bold;
+.overlay-ok-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: white;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s ease;
+}
+
+.overlay-ok-btn:hover svg {
+    transform: scale(1.1);
+}
+
+.overlay-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 5px;
+    border-radius: 50%;
+}
+
+.overlay-close-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: rotate(90deg);
+}
+
+/* Create Folder Container Styles */
+.create-folder-container {
+    margin-top: 25px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 20px;
+}
+
+.folder-input {
+    flex-grow: 1;
+    padding: 12px 15px;
+    background-color: rgba(20, 22, 25, 0.7); /* Darker background */
+    color: #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 15px;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2); /* Inner shadow for depth */
+}
+
+.folder-input:focus {
+    outline: none;
+    border-color: rgba(66, 153, 225, 0.8);
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        0 0 0 2px rgba(66, 153, 225, 0.2);
+    background-color: rgba(15, 17, 20, 0.9); /* Even darker when focused */
+}
+
+.folder-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.create-folder-btn {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    background-color: rgba(66, 153, 225, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.create-folder-btn:hover {
+    background-color: rgba(66, 153, 225, 1);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.create-folder-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: white;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s ease;
+}
+
+.create-folder-btn:hover svg {
+    transform: scale(1.1);
+}
+
+/* Display States */
+.folderchoice-overlay[style*="display: none"] {
+    display: none !important;
+}
+
+.folderchoice-overlay[style*="display: flex"] {
+    display: flex !important;
+    opacity: 1;
+    transform: scale(1);
+}
+
+.folderchoice-overlay[style*="display: flex"] .overlay-message-box {
+    transform: scale(1);
+    animation: popIn 0.3s ease forwards;
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.03);
+        opacity: 1;
+    }
+    70% {
+        transform: scale(0.98);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* Selection Button Styles */
@@ -103,44 +367,6 @@
     color: #ddd;
     cursor: pointer;
     z-index: 1000;
-}
-
-/* Create Folder Container Styles */
-.create-folder-container {
-    margin-top: 20px;
-    display: flex;
-    gap: 10px;
-}
-
-.folder-input {
-    flex-grow: 1;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 16px;
-}
-
-.create-folder-btn {
-    padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.create-folder-btn:hover {
-    background-color: #0056b3;
-}
-
-/* Display States */
-.folderchoice-overlay[style*="display: none"] {
-    display: none !important;
-}
-
-.folderchoice-overlay[style*="display: flex"] {
-    display: flex !important;
 }
 
 /* Selection Button Positioning */
@@ -329,11 +555,12 @@ canvas {
     border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Updated folder header wrapper styles */
+/* Folder header wrapper styles */
 .folder-header-wrapper {
     display: flex;
     align-items: center;
-    padding: 0 10px;
+    padding: 10px 15px;
+    position: relative; /* Add position relative for absolute positioning of children */
 }
 
 /* Updated folder header styles */
@@ -400,27 +627,39 @@ canvas {
 
 /* Updated options menu styles */
 .options-menu {
-    position: absolute;
-    top: 40px;
-    right: 10px;
+    position: fixed; /* Change to fixed positioning */
     background-color: rgba(40, 40, 40, 0.95);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     display: none;
-    z-index: 10003;
-    overflow: hidden;
+    z-index: 10005; /* Increase z-index to ensure it's above everything */
+    overflow: visible;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    min-width: 120px;
+    min-width: 150px;
+    max-height: none;
+    transform-origin: top right;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 /* Updated options menu item styles */
 .options-menu-item {
-    padding: 10px 12px;
+    padding: 12px 15px;
     cursor: pointer;
     color: white;
     display: flex;
     align-items: center;
     transition: all 0.2s ease;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.options-menu-item:last-child {
+    border-bottom: none;
 }
 
 .options-menu-item:hover {
@@ -431,7 +670,7 @@ canvas {
     margin-right: 8px;
 }
 
-/* Updated folder item list styles */
+/* Updated folder item list styles - remove max-height transition */
 .folder-item-list {
     list-style: none;
     padding: 0;
@@ -440,6 +679,7 @@ canvas {
     overflow: hidden;
     transition: max-height 0.3s ease;
     background-color: rgba(0, 0, 0, 0.2);
+    position: relative;
 }
 
 .folder-item-list li {
@@ -447,7 +687,6 @@ canvas {
     align-items: center;
     padding: 8px 15px 8px 35px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.2s ease;
 }
 
 .folder-item-list li:hover {
@@ -475,15 +714,49 @@ canvas {
     color: #2196F3;
 }
 
+/* Folder rename container styles */
+.folder-rename-container {
+    position: relative;
+    width: 100%;
+    padding: 2px 0;
+}
+
+.folder-rename-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -5px;
+    right: -5px;
+    bottom: -2px;
+    background: rgba(66, 153, 225, 0.05);
+    border-radius: 8px;
+    z-index: -1;
+}
+
 /* Rename input styles */
 .folder-rename-input {
-    width: 80%;
-    padding: 5px;
+    width: 90%;
+    padding: 8px 10px;
     margin: 0;
-    background-color: #555;
-    color: white;
-    border: none;
+    background-color: rgba(30, 32, 35, 0.9);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(66, 153, 225, 0.4);
+    border-radius: 6px;
     outline: none;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(66, 153, 225, 0.1);
+}
+
+.folder-rename-input:focus {
+    border-color: rgba(66, 153, 225, 0.8);
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        0 0 0 2px rgba(66, 153, 225, 0.2);
+    background-color: rgba(25, 27, 30, 0.95);
 }
 
 /* Updated styles for PDF download button */
@@ -689,5 +962,46 @@ canvas {
 /* If you have any styles targeting the ID specifically */
 #folderchoice-container {
     /* Any styles specific to the ID */
+}
+
+.overlay-title {
+    margin: 0 0 25px 0;
+    font-size: 22px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    letter-spacing: 0.5px;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+.overlay-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(66, 153, 225, 0.2), rgba(66, 153, 225, 0.8), rgba(66, 153, 225, 0.2));
+    border-radius: 2px;
+}
+
+/* Empty folder message styling */
+.empty-folder-message {
+    padding: 15px 15px 15px 35px;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+    display: flex;
+    align-items: center;
+}
+
+.empty-folder-icon {
+    margin-right: 8px;
+    opacity: 0.6;
+}
+
+.empty-folder-message span:last-child {
+    margin-top: 2px;
 }
 
