@@ -778,21 +778,6 @@ function createMenuButton() {
             menu.remove();
         });
         
-        // Create the print button (initially hidden)
-        const printButton = document.createElement("button");
-        printButton.className = "print-checked-button";
-        printButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                <rect x="6" y="14" width="12" height="8"></rect>
-            </svg>
-            <span>Print Selected</span>
-        `;
-        printButton.style.display = "none";
-        printButton.addEventListener("click", printCheckedFolders);
-        folderContainer.appendChild(printButton);
-        
         // Fetch the latest folder data
         try {
             const response = await fetchFromChromeStorage();
@@ -814,91 +799,92 @@ function createMenuButton() {
             }
             
             // Render each folder
-            folders.forEach((folder, index) => {
-                const folderDiv = document.createElement("div");
-                folderDiv.className = "folder-item";
-                folderDiv.dataset.index = index;
+        folders.forEach((folder, index) => {
+            const folderDiv = document.createElement("div");
+            folderDiv.className = "folder-item";
+            folderDiv.dataset.index = index;
 
-                // Folder header with icon
-                const folderHeaderWrapper = document.createElement("div");
-                folderHeaderWrapper.className = "folder-header-wrapper";
-                
-                // Add checkbox
-                const folderCheckbox = document.createElement("input");
-                folderCheckbox.type = "checkbox";
-                folderCheckbox.className = "folder-checkbox";
-                folderCheckbox.addEventListener("change", updatePrintButton);
-                
-                const folderHeader = document.createElement("div");
-                folderHeader.className = "folder-header";
-                folderHeader.addEventListener("click", (e) => {
-                    // Prevent toggling when clicking the input field or checkbox
-                    if (e.target.tagName !== "INPUT") {
-                        toggleFolder(folderDiv, folderHeader);
-                    }
-                });
-                
-                // Add folder icon
-                const folderIcon = document.createElement("span");
-                folderIcon.className = "folder-icon";
-                folderIcon.innerHTML = `
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                    </svg>
-                `;
-                
-                // Add folder name
-                const folderName = document.createElement("span");
+            // Folder header with icon
+            const folderHeaderWrapper = document.createElement("div");
+            folderHeaderWrapper.className = "folder-header-wrapper";
+            
+            const folderHeader = document.createElement("div");
+            folderHeader.className = "folder-header";
+            folderHeader.addEventListener("click", (e) => {
+                    // Prevent toggling when clicking the input field
+                if (e.target.tagName !== "INPUT") {
+                    toggleFolder(folderDiv, folderHeader);
+                }
+            });
+            
+            // Add folder icon
+            const folderIcon = document.createElement("span");
+            folderIcon.className = "folder-icon";
+            
+            // Get chat count for the folder
+            const chatCount = folder.Chats ? folder.Chats.length : 0;
+            
+            // Create SVG with count badge if there are items
+            folderIcon.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="folder-svg">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                ${chatCount > 0 ? `<span class="folder-icon-count">${chatCount}</span>` : ''}
+            `;
+            
+            // Add folder name
+            const folderName = document.createElement("span");
                 folderName.textContent = folder.Folder_Name;
-                folderName.className = "folder-name";
-                
-                folderHeader.appendChild(folderIcon);
-                folderHeader.appendChild(folderName);
+            folderName.className = "folder-name";
+            
+            // We'll remove the separate item count badge since it's now part of the icon
+            
+            folderHeader.appendChild(folderIcon);
+            folderHeader.appendChild(folderName);
 
-                // Options icon (three dots)
-                const optionsIcon = document.createElement("span");
-                optionsIcon.className = "options-icon";
-                optionsIcon.innerHTML = `
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="1" />
-                        <circle cx="12" cy="5" r="1" />
-                        <circle cx="12" cy="19" r="1" />
-                    </svg>
-                `;
-                optionsIcon.addEventListener("click", (e) => toggleOptionsMenu(e, folderDiv, index));
+            // Options icon (three dots)
+            const optionsIcon = document.createElement("span");
+            optionsIcon.className = "options-icon";
+            optionsIcon.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="1" />
+                    <circle cx="12" cy="5" r="1" />
+                    <circle cx="12" cy="19" r="1" />
+                </svg>
+            `;
+            optionsIcon.addEventListener("click", (e) => toggleOptionsMenu(e, folderDiv, index));
 
-                folderHeaderWrapper.appendChild(folderCheckbox);
-                folderHeaderWrapper.appendChild(folderHeader);
-                folderHeaderWrapper.appendChild(optionsIcon);
+            folderHeaderWrapper.appendChild(folderHeader);
+            folderHeaderWrapper.appendChild(optionsIcon);
 
-                // Dropdown menu for options
-                const optionsMenu = document.createElement("div");
-                optionsMenu.className = "options-menu";
+            // Dropdown menu for options
+            const optionsMenu = document.createElement("div");
+            optionsMenu.className = "options-menu";
                 optionsMenu.dataset.folderIndex = index; // Store the folder index
                 
                 // Don't set any initial positioning - it will be set dynamically when opened
                 document.body.appendChild(optionsMenu); // Append to body instead of folder
 
-                const renameOption = document.createElement("div");
-                renameOption.className = "options-menu-item";
-                renameOption.innerHTML = `
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    <span>Rename</span>
-                `;
-                renameOption.addEventListener("click", () => {
+            const renameOption = document.createElement("div");
+            renameOption.className = "options-menu-item";
+            renameOption.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                <span>Rename</span>
+            `;
+            renameOption.addEventListener("click", () => {
                     // Get the folder header for this folder
                     const folderHeader = document.querySelector(`.folder-item[data-index="${index}"] .folder-header`);
                     const folderName = folderHeader.querySelector(".folder-name");
                     
-                    // Replace folder name with input field
-                    const input = document.createElement("input");
-                    input.type = "text";
+                // Replace folder name with input field
+                const input = document.createElement("input");
+                input.type = "text";
                     // Use Folder_Name property instead of name for consistency
                     input.value = folder.Folder_Name || folder.name;
-                    input.className = "folder-rename-input";
+                input.className = "folder-rename-input";
                     
                     // Add a container for the input to maintain styling
                     const inputContainer = document.createElement("div");
@@ -906,9 +892,9 @@ function createMenuButton() {
                     inputContainer.style.flex = "1";
                     inputContainer.style.display = "flex";
                     inputContainer.style.alignItems = "center";
-                    
-                    // Replace folder name with input
-                    folderName.textContent = "";
+
+                // Replace folder name with input
+                folderName.textContent = "";
                     inputContainer.appendChild(input);
                     folderName.appendChild(inputContainer);
                     
@@ -921,26 +907,26 @@ function createMenuButton() {
                         input.style.transform = "translateY(0)";
                     }, 10);
                     
-                    input.focus();
+                input.focus();
 
-                    // Save on Enter or blur
+                // Save on Enter or blur
                     input.addEventListener("keydown", async (e) => {
-                        if (e.key === "Enter") {
+                    if (e.key === "Enter") {
                             await saveNewName(input.value, index);
                             renderFolders();
                         } else if (e.key === "Escape") {
                             // Cancel rename on Escape
-                            renderFolders();
-                        }
-                    });
+                        renderFolders();
+                    }
+                });
                     
                     input.addEventListener("blur", async () => {
                         await saveNewName(input.value, index);
-                        renderFolders();
-                    });
-
-                    optionsMenu.style.display = "none";
+                    renderFolders();
                 });
+
+                optionsMenu.style.display = "none";
+            });
 
                 // Add color option
                 const colorOption = document.createElement("div");
@@ -969,20 +955,20 @@ function createMenuButton() {
                 });
                 optionsMenu.appendChild(colorOption);
 
-                const deleteOption = document.createElement("div");
-                deleteOption.className = "options-menu-item";
-                deleteOption.innerHTML = `
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        <line x1="10" y1="11" x2="10" y2="17" />
-                        <line x1="14" y1="11" x2="14" y2="17" />
-                    </svg>
-                    <span>Delete</span>
-                `;
+            const deleteOption = document.createElement("div");
+            deleteOption.className = "options-menu-item";
+            deleteOption.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+                <span>Delete</span>
+            `;
                 deleteOption.addEventListener("click", async () => {
                     // Delete the folder from local array
-                    folders.splice(index, 1);
+                folders.splice(index, 1);
                     
                     // Save changes to Chrome storage
                     try {
@@ -997,45 +983,45 @@ function createMenuButton() {
                         console.error('[deleteFolder] Error saving after folder deletion:', error);
                     }
                     
-                    renderFolders();
-                    optionsMenu.style.display = "none";
-                });
+                renderFolders();
+                optionsMenu.style.display = "none";
+            });
 
-                optionsMenu.appendChild(renameOption);
+            optionsMenu.appendChild(renameOption);
                 optionsMenu.appendChild(colorOption);
-                optionsMenu.appendChild(deleteOption);
-                folderDiv.appendChild(optionsMenu);
+            optionsMenu.appendChild(deleteOption);
+            folderDiv.appendChild(optionsMenu);
 
-                const itemList = document.createElement("ul");
-                itemList.className = "folder-item-list";
+            const itemList = document.createElement("ul");
+            itemList.className = "folder-item-list";
                 itemList.style.maxHeight = "0"; // Ensure initial state is collapsed
-                
+
                 // console.log('[renderFolders] folder', folder);
                 if (folder.Chats && folder.Chats.length > 0) {
                     folder.Chats.forEach(item => {
                         console.log(`[renderFolders] ${folder.Folder_Name} item`, item);
-                        const listItem = document.createElement("li");
-                        
-                        const itemIcon = document.createElement("span");
-                        itemIcon.className = "item-icon";
-                        itemIcon.innerHTML = `
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                <polyline points="15 3 21 3 21 9" />
-                                <line x1="10" y1="14" x2="21" y2="3" />
-                            </svg>
-                        `;
-                        
-                        const itemLink = document.createElement("a");
+                const listItem = document.createElement("li");
+                
+                const itemIcon = document.createElement("span");
+                itemIcon.className = "item-icon";
+                itemIcon.innerHTML = `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                `;
+                
+                const itemLink = document.createElement("a");
                         itemLink.href = item.href;
                         itemLink.textContent = item.title;
-                        itemLink.className = "folder-item-link";
-                        itemLink.target = "_blank";
+                itemLink.className = "folder-item-link";
+                itemLink.target = "_blank";
 
-                        listItem.appendChild(itemIcon);
-                        listItem.appendChild(itemLink);
-                        itemList.appendChild(listItem);
-                    });
+                listItem.appendChild(itemIcon);
+                listItem.appendChild(itemLink);
+                itemList.appendChild(listItem);
+            });
                 } else {
                     // Create an empty state message for folders with no items
                     const emptyStateItem = document.createElement("li");
@@ -1052,9 +1038,9 @@ function createMenuButton() {
                     itemList.appendChild(emptyStateItem);
                 }
 
-                folderDiv.appendChild(folderHeaderWrapper);
-                folderDiv.appendChild(itemList);
-                folderContainer.appendChild(folderDiv);
+            folderDiv.appendChild(folderHeaderWrapper);
+            folderDiv.appendChild(itemList);
+            folderContainer.appendChild(folderDiv);
                 
                 // Apply saved color if it exists
                 if (folder.color) {
@@ -1123,9 +1109,9 @@ function createMenuButton() {
         }
         
         // Close any other open menus first
-        document.querySelectorAll(".options-menu").forEach(menu => {
-            menu.style.display = "none";
-        });
+            document.querySelectorAll(".options-menu").forEach(menu => {
+                menu.style.display = "none";
+            });
         
         // Get the position of the clicked options icon
         const optionsIcon = e.currentTarget;
@@ -1137,7 +1123,7 @@ function createMenuButton() {
         optionsMenu.style.left = `${iconRect.left - 120}px`; // Position to the left of the icon
         
         // Show the menu
-        optionsMenu.style.display = "block";
+            optionsMenu.style.display = "block";
         
         // Check if the menu extends beyond the viewport boundaries and adjust if needed
         setTimeout(() => {
@@ -1431,7 +1417,7 @@ domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree
 
 // Function to generate and download the PDF
 
-// Create and style the button
+  // Create and style the button
 function pdfmaker() {
     const button = document.createElement("button");
     button.id = "pdf-download-btn"; // Unique ID to avoid duplicates
@@ -1857,9 +1843,21 @@ function applyFolderColor(folderDiv, colorValue) {
         folderDiv.style.borderColor = colorValue.replace('0.6', '0.3');
         
         // Set the color for the ::before pseudo-element
-        folderDiv.style.setProperty('--folder-accent-color', colorValue.replace('0.6', '0.8'));
+        folderDiv.style.setProperty('--folder-accent-color', colorValue);
         
-        // Add or update color indicator in the folder header
+        // Style the folder icon
+        const folderIconSvg = folderDiv.querySelector('.folder-icon svg');
+        if (folderIconSvg) {
+            folderIconSvg.style.stroke = colorValue.replace('0.6', '0.8');
+        }
+        
+        // Style the folder icon count badge if it exists
+        const folderIconCount = folderDiv.querySelector('.folder-icon-count');
+        if (folderIconCount) {
+            folderIconCount.style.backgroundColor = colorValue.replace('0.6', '0.8');
+        }
+        
+        // Add a color indicator dot
         let folderHeader = folderDiv.querySelector('.folder-header');
         let colorIndicator = folderHeader.querySelector('.folder-color-indicator');
         

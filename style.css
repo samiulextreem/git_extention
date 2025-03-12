@@ -585,6 +585,7 @@ canvas {
     margin-right: 10px;
     color: rgba(255, 255, 255, 0.8);
     transition: all 0.2s ease;
+    position: relative; /* Added for positioning the count badge */
 }
 
 .folder-header:hover .folder-icon {
@@ -594,6 +595,36 @@ canvas {
 
 .folder-header-expanded .folder-icon svg {
     stroke: #2196F3;
+}
+
+/* Folder icon count styles */
+.folder-icon-count {
+    position: absolute;
+    top: -6px;
+    right: -8px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    background-color: rgba(66, 153, 225, 0.8);
+    color: white;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+.folder-header:hover .folder-icon-count {
+    transform: scale(1.1);
+    background-color: rgba(66, 153, 225, 1);
+}
+
+.folder-header-expanded .folder-icon-count {
+    background-color: #2196F3;
 }
 
 /* Folder name styles */
