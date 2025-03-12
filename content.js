@@ -1396,11 +1396,14 @@ const domwatcherforaskbox = new MutationObserver((mutations) => {
         if (overlayActvated == false){
             if (mouseY > bottom30Percent && mouseX < right30percent) {
                 showFlexSection();
-                // console.log(`[mouseobserver] below 30 percent`);
-            }else if ( mouseY < (bottom30Percent *.8) ){
-                // console.log(`[mouseobserver] avobe 30 percent`);
+            } else {
                 hideFlexSection();
             }
+            
+            // Replace absolute position logging with percentages
+            // const yPercent = ((mouseY / window.innerHeight) * 100).toFixed(2);
+            // const xPercent = ((mouseX / window.innerWidth) * 100).toFixed(2);
+            // console.log(`[mouseobserver] Vertical: ${yPercent}%, Horizontal: ${xPercent}%`);
         }
 
 
@@ -1967,4 +1970,64 @@ function applyCheckboxItemColor(checkboxItem, colorValue) {
             colorButton.title = "Add folder color";
         }
     }
+}
+
+
+
+document.querySelector("body > div.flex.h-full.w-full.flex-col > div > div.relative.flex.h-full.w-full.flex-row.overflow-hidden > div.relative.flex.h-full.max-w-full.flex-1.flex-col.overflow-hidden > main > div.composer-parent.flex.h-full.flex-col.focus-visible\\:outline-0 > div.isolate.w-full.basis-auto.has-\\[\\[data-has-thread-error\\]\\]\\:pt-2.has-\\[\\[data-has-thread-error\\]\\]\\:\\[box-shadow\\:var\\(--sharp-edge-bottom-shadow\\)\\].dark\\:border-white\\/20.md\\:border-transparent.md\\:pt-0.md\\:dark\\:border-transparent > div.relative.flex.min-h-8.w-full.items-center.justify-center.p-2.text-center.text-xs.text-token-text-secondary.md\\:px-\\[60px\\] > div").style.display = 'none';
+
+
+
+// Create the vertical line
+let vLine = document.createElement("div");
+vLine.style.position = "absolute";
+vLine.style.top = "0";
+vLine.style.left = "50%";
+vLine.style.width = "2px";
+vLine.style.height = "100vh";
+vLine.style.backgroundColor = "black";
+vLine.style.transform = "translateX(-50%)";
+document.body.appendChild(vLine);
+
+// Create the horizontal line
+let hLine = document.createElement("div");
+hLine.style.position = "absolute";
+hLine.style.top = "50%";
+hLine.style.left = "0";
+hLine.style.width = "100vw";
+hLine.style.height = "2px";
+hLine.style.backgroundColor = "black";
+hLine.style.transform = "translateY(-50%)";
+document.body.appendChild(hLine);
+
+// Function to create vertical percentage markers (for height)
+function createVerticalMarker(percent) {
+    let marker = document.createElement("div");
+    marker.innerText = percent + "%";
+    marker.style.position = "absolute";
+    marker.style.left = "calc(50% + 8px)"; // Slightly to the right of the line
+    marker.style.top = `calc(${percent}vh - 7px)`;
+    marker.style.color = "black";
+    marker.style.fontSize = "12px";
+    marker.style.fontWeight = "bold";
+    document.body.appendChild(marker);
+}
+
+// Function to create horizontal percentage markers (for width)
+function createHorizontalMarker(percent) {
+    let marker = document.createElement("div");
+    marker.innerText = percent + "%";
+    marker.style.position = "absolute";
+    marker.style.top = "calc(50% + 8px)"; // Slightly below the line
+    marker.style.left = `calc(${percent}vw - 10px)`;
+    marker.style.color = "black";
+    marker.style.fontSize = "12px";
+    marker.style.fontWeight = "bold";
+    document.body.appendChild(marker);
+}
+
+// Add percentage markers at every 10% interval for height and width
+for (let i = 0; i <= 100; i += 5) {
+    createVerticalMarker(i);
+    createHorizontalMarker(i);
 }
