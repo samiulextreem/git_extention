@@ -546,7 +546,7 @@ canvas {
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.3s ease, background-color 0.5s ease, border-color 0.5s ease;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -1003,5 +1003,248 @@ canvas {
 
 .empty-folder-message span:last-child {
     margin-top: 2px;
+}
+
+/* Color picker styles */
+.color-picker-container {
+    background-color: rgba(30, 32, 35, 0.95);
+    border: 1px solid rgba(66, 153, 225, 0.5);
+    border-radius: 12px;
+    padding: 15px;
+    width: 220px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    z-index: 10010;
+    animation: fadeIn 0.2s ease-out;
+    transform-origin: left top;
+    animation: colorPickerFadeIn 0.3s ease forwards;
+}
+
+@keyframes colorPickerFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.color-picker-title {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 0.5px;
+    position: relative;
+    padding-bottom: 8px;
+}
+
+.color-picker-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(66, 153, 225, 0.2), rgba(66, 153, 225, 0.8), rgba(66, 153, 225, 0.2));
+    border-radius: 2px;
+}
+
+.color-swatches {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.color-swatch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 50%);
+    z-index: 1;
+}
+
+.color-swatch.selected {
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.color-swatch svg {
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+}
+
+.color-picker-close {
+    width: 100%;
+    padding: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.color-picker-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 1);
+}
+
+/* Folder color indicator */
+.folder-color-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    transform: translateY(-50%);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    z-index: 3;
+}
+
+.folder-header:hover .folder-color-indicator {
+    transform: translateY(-50%) scale(1.2);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Enhanced folder styling with color */
+.folder-item[data-has-color="true"] {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.folder-item[data-has-color="true"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--folder-accent-color, rgba(66, 153, 225, 0.8));
+    opacity: 1;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.folder-item[data-has-color="true"]:hover::before {
+    width: 6px;
+}
+
+.folder-item[data-has-color="true"] .folder-header-wrapper {
+    position: relative;
+    z-index: 2;
+    padding-left: 18px; /* Increased padding to accommodate the color indicator */
+}
+
+.folder-item[data-has-color="true"] .folder-item-list {
+    position: relative;
+    z-index: 2;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Color preview in options menu */
+.color-preview {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin: 0 8px 0 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+    vertical-align: middle;
+}
+
+/* Checkbox color button */
+.checkbox-color-btn {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 3;
+    padding: 0;
+    opacity: 0.6;
+}
+
+.checkbox-color-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+.checkbox-item:hover .checkbox-color-btn {
+    opacity: 0.8;
+}
+
+/* Checkbox color indicator */
+.checkbox-color-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    z-index: 2;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+/* Styling for checkbox items with color */
+.checkbox-item[data-has-color="true"] {
+    position: relative;
+    overflow: hidden;
+}
+
+.checkbox-item[data-has-color="true"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: inherit;
+    opacity: 0.8;
+    z-index: 1;
 }
 

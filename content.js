@@ -337,7 +337,17 @@ async function renderCheckboxes(customFolders = [], checkboxList) {
     const shuffledFolders = [...fetchedFolders].sort(() => Math.random() - 0.45);
     
     shuffledFolders.forEach((folderName, index) => {
-        const folder = { name: folderName, id: `checkbox-fixed-${index}` };
+        // Find the actual folder object to get its color
+        const folderObject = rendercheckboxresponse.folder_structure.chatgpt.Folders.find(
+            f => f.Folder_Name === folderName
+        );
+        
+        const folder = { 
+            name: folderName, 
+            id: `checkbox-fixed-${index}`,
+            color: folderObject?.color || ""
+        };
+        
         const checkboxContainer = document.createElement("div");
         const checkbox = document.createElement("input");
         const label = document.createElement("label");
@@ -353,7 +363,40 @@ async function renderCheckboxes(customFolders = [], checkboxList) {
         checkbox.id = folder.id;
         checkbox.name = folder.name;
         checkbox.className = "overlay-checkbox";
+        
+        // Create the checkbox item container
+        checkboxContainer.className = "checkbox-item";
+        checkboxContainer.setAttribute("data-folder-name", folder.name);
+        
+        // Apply color if the folder has one
+        if (folder.color) {
+            applyCheckboxItemColor(checkboxContainer, folder.color);
+        }
+        
+        // Add color button
+        const colorButton = document.createElement("button");
+        colorButton.className = "checkbox-color-btn";
+        colorButton.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="8" cy="8" r="2" fill="rgba(66, 153, 225, 0.8)" stroke="none" />
+                <circle cx="16" cy="8" r="2" fill="rgba(245, 101, 101, 0.8)" stroke="none" />
+                <circle cx="8" cy="16" r="2" fill="rgba(72, 187, 120, 0.8)" stroke="none" />
+                <circle cx="16" cy="16" r="2" fill="rgba(237, 137, 54, 0.8)" stroke="none" />
+            </svg>
+        `;
+        
+        // Add tooltip to color button
+        colorButton.title = folder.color ? "Change folder color" : "Add folder color";
+        
+        // Add event listener to color button
+        colorButton.addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent checkbox from being toggled
+            showColorPicker(checkboxContainer, null, folder.color, folder.name);
+        });
+        
         label.htmlFor = folder.id;
+        label.className = "checkbox-label";
         label.textContent = folder.name;
 
         // Add classes for styling
@@ -389,6 +432,7 @@ async function renderCheckboxes(customFolders = [], checkboxList) {
         checkboxContainer.appendChild(iconWrapper);
         checkboxContainer.appendChild(label);
         checkboxContainer.appendChild(checkbox);
+        checkboxContainer.appendChild(colorButton);
         checkboxList.appendChild(checkboxContainer);
     });
 }
@@ -898,6 +942,33 @@ function createMenuButton() {
                     optionsMenu.style.display = "none";
                 });
 
+                // Add color option
+                const colorOption = document.createElement("div");
+                colorOption.className = "options-menu-item";
+                
+                // Show the current color in the menu item if it exists
+                const currentColor = folder.color || "";
+                const colorPreview = currentColor ? 
+                    `<span class="color-preview" style="background-color: ${currentColor}"></span>` : 
+                    '';
+                
+                colorOption.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <circle cx="8" cy="8" r="2" fill="rgba(66, 153, 225, 0.8)" stroke="none" />
+                        <circle cx="16" cy="8" r="2" fill="rgba(245, 101, 101, 0.8)" stroke="none" />
+                        <circle cx="8" cy="16" r="2" fill="rgba(72, 187, 120, 0.8)" stroke="none" />
+                        <circle cx="16" cy="16" r="2" fill="rgba(237, 137, 54, 0.8)" stroke="none" />
+                    </svg>
+                    ${colorPreview}
+                    <span>${currentColor ? 'Change Color' : 'Add Color'}</span>
+                `;
+                colorOption.addEventListener("click", () => {
+                    showColorPicker(folderDiv, index, currentColor);
+                    optionsMenu.style.display = "none";
+                });
+                optionsMenu.appendChild(colorOption);
+
                 const deleteOption = document.createElement("div");
                 deleteOption.className = "options-menu-item";
                 deleteOption.innerHTML = `
@@ -931,6 +1002,7 @@ function createMenuButton() {
                 });
 
                 optionsMenu.appendChild(renameOption);
+                optionsMenu.appendChild(colorOption);
                 optionsMenu.appendChild(deleteOption);
                 folderDiv.appendChild(optionsMenu);
 
@@ -983,6 +1055,14 @@ function createMenuButton() {
                 folderDiv.appendChild(folderHeaderWrapper);
                 folderDiv.appendChild(itemList);
                 folderContainer.appendChild(folderDiv);
+                
+                // Apply saved color if it exists
+                if (folder.color) {
+                    applyFolderColor(folderDiv, folder.color);
+                    
+                    // Log color application for debugging
+                    console.log(`[renderFolders] Applied color ${folder.color} to folder "${folder.Folder_Name}"`);
+                }
             });
         } catch (error) {
             console.error('[renderFolders] Error fetching folders:', error);
@@ -1205,7 +1285,8 @@ function createMenuButton() {
             name: randomName, 
             Folder_Name: randomName, 
             items: [], 
-            Chats: [] 
+            Chats: [],
+            color: "" 
         }; // Ensure all properties exist
         
         // Add to local folders array
@@ -1551,4 +1632,341 @@ function printCheckedFolders() {
     
     
 
+}
+
+// Function to show color picker for a folder
+function showColorPicker(folderDiv, index, folderColor = "", folderName = null) {
+    // Create color picker container
+    const colorPickerContainer = document.createElement("div");
+    colorPickerContainer.className = "color-picker-container";
+    
+    // Define a set of colors to choose from, organized by color groups
+    const colorGroups = [
+        {
+            name: "Blues",
+            colors: [
+                { name: "Sky Blue", value: "rgba(66, 153, 225, 0.6)" },
+                { name: "Royal Blue", value: "rgba(49, 130, 206, 0.6)" },
+                { name: "Navy Blue", value: "rgba(44, 82, 130, 0.6)" }
+            ]
+        },
+        {
+            name: "Greens",
+            colors: [
+                { name: "Mint Green", value: "rgba(72, 187, 120, 0.6)" },
+                { name: "Forest Green", value: "rgba(39, 103, 73, 0.6)" },
+                { name: "Teal", value: "rgba(56, 178, 172, 0.6)" }
+            ]
+        },
+        {
+            name: "Warm Colors",
+            colors: [
+                { name: "Red", value: "rgba(245, 101, 101, 0.6)" },
+                { name: "Orange", value: "rgba(237, 137, 54, 0.6)" },
+                { name: "Yellow", value: "rgba(236, 201, 75, 0.6)" }
+            ]
+        },
+        {
+            name: "Purple & Pink",
+            colors: [
+                { name: "Lavender", value: "rgba(159, 122, 234, 0.6)" },
+                { name: "Purple", value: "rgba(128, 90, 213, 0.6)" },
+                { name: "Pink", value: "rgba(237, 100, 166, 0.6)" }
+            ]
+        }
+    ];
+    
+    // Add a default/reset option
+    const defaultOption = { name: "Default", value: "" };
+    
+    // Get current folder color - use the passed parameter instead of accessing folders
+    const currentColor = folderColor || "";
+    
+    // Create title for the color picker
+    const title = document.createElement("div");
+    title.className = "color-picker-title";
+    title.textContent = folderName ? `Color for "${folderName}"` : "Select a color";
+    colorPickerContainer.appendChild(title);
+    
+    // Create color swatches container
+    const swatchesContainer = document.createElement("div");
+    swatchesContainer.className = "color-swatches";
+    
+    // Add all color groups
+    colorGroups.forEach(group => {
+        group.colors.forEach(color => {
+            addColorSwatch(color, currentColor);
+        });
+    });
+    
+    // Add default option at the end
+    addColorSwatch(defaultOption, currentColor);
+    
+    colorPickerContainer.appendChild(swatchesContainer);
+    
+    // Helper function to add a color swatch
+    function addColorSwatch(color, currentColor) {
+        const swatch = document.createElement("div");
+        swatch.className = "color-swatch";
+        swatch.style.backgroundColor = color.value || "rgba(255, 255, 255, 0.05)";
+        swatch.title = color.name;
+        
+        // Show checkmark on currently selected color
+        if (color.value === currentColor) {
+            swatch.classList.add("selected");
+            swatch.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+        } else if (color.name === "Default" && !currentColor) {
+            swatch.classList.add("selected");
+            swatch.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+        } else if (color.name === "Default") {
+            swatch.innerHTML = `
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18l6-6-6-6"/>
+                </svg>
+            `;
+        }
+        
+        swatch.addEventListener("click", async () => {
+            let success;
+            
+            if (folderName) {
+                // For checkbox overlay
+                success = await saveFolderColor(null, color.value, folderName);
+                if (success) {
+                    // Apply color to the checkbox item
+                    applyCheckboxItemColor(folderDiv, color.value);
+                }
+            } else {
+                // For folder management overlay
+                success = await saveFolderColor(index, color.value);
+                if (success) {
+                    // Apply color to the folder
+                    applyFolderColor(folderDiv, color.value);
+                }
+            }
+            
+            colorPickerContainer.remove();
+        });
+        
+        swatchesContainer.appendChild(swatch);
+    }
+    
+    // Add close button
+    const closeButton = document.createElement("button");
+    closeButton.className = "color-picker-close";
+    closeButton.innerHTML = "Cancel";
+    closeButton.addEventListener("click", () => {
+        colorPickerContainer.remove();
+    });
+    colorPickerContainer.appendChild(closeButton);
+    
+    // Position the color picker near the folder
+    const folderRect = folderDiv.getBoundingClientRect();
+    colorPickerContainer.style.position = "fixed";
+    colorPickerContainer.style.top = `${folderRect.top + window.scrollY}px`;
+    colorPickerContainer.style.left = `${folderRect.right + 10}px`;
+    
+    // Check if the color picker would go off-screen and adjust if needed
+    setTimeout(() => {
+        const pickerRect = colorPickerContainer.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        if (pickerRect.right > viewportWidth - 20) {
+            colorPickerContainer.style.left = `${folderRect.left - pickerRect.width - 10}px`;
+        }
+        
+        if (pickerRect.bottom > viewportHeight - 20) {
+            colorPickerContainer.style.top = `${Math.max(20, folderRect.bottom - pickerRect.height)}px`;
+        }
+    }, 0);
+    
+    // Add to document
+    document.body.appendChild(colorPickerContainer);
+    
+    // Add click outside handler to close the picker
+    setTimeout(() => {
+        const closePickerOnClickOutside = (event) => {
+            if (!colorPickerContainer.contains(event.target)) {
+                colorPickerContainer.remove();
+                document.removeEventListener("click", closePickerOnClickOutside);
+            }
+        };
+        document.addEventListener("click", closePickerOnClickOutside);
+    }, 10);
+}
+
+// Function to save folder color to Chrome storage
+async function saveFolderColor(index, colorValue, folderName = null) {
+    // If we're in the checkbox overlay (folderName is provided), we need to find the folder by name
+    // If we're in the folder management overlay, we can use the index directly
+    
+    try {
+        const response = await fetchFromChromeStorage();
+        const existingFolders = response.folder_structure.chatgpt.Folders;
+        
+        if (folderName) {
+            // Find the folder by name (for checkbox overlay)
+            const folderIndex = existingFolders.findIndex(f => f.Folder_Name === folderName);
+            if (folderIndex !== -1) {
+                existingFolders[folderIndex].color = colorValue;
+                console.log(`[saveFolderColor] Updated color for folder "${folderName}" to ${colorValue}`);
+            } else {
+                console.error(`[saveFolderColor] Could not find folder with name "${folderName}"`);
+                return false;
+            }
+        } else if (index !== undefined && index < existingFolders.length) {
+            // Update by index (for folder management overlay)
+            existingFolders[index].color = colorValue;
+            
+            // If we have access to the local folders array, update it too
+            if (typeof folders !== 'undefined' && folders && folders[index]) {
+                folders[index].color = colorValue;
+            }
+        } else {
+            console.error('[saveFolderColor] Invalid index or folder not found');
+            return false;
+        }
+        
+        // Save back to Chrome storage
+        await chrome.storage.sync.set(response);
+        console.log('[saveFolderColor] Saved updated folder color to Chrome storage');
+        return true;
+    } catch (error) {
+        console.error('[saveFolderColor] Error saving folder color:', error);
+        return false;
+    }
+}
+
+// Function to apply color to a folder element
+function applyFolderColor(folderDiv, colorValue) {
+    if (colorValue) {
+        // Set data attribute to indicate this folder has a color
+        folderDiv.setAttribute('data-has-color', 'true');
+        
+        // Apply a subtle background color
+        folderDiv.style.backgroundColor = colorValue.replace('0.6', '0.15');
+        folderDiv.style.borderColor = colorValue.replace('0.6', '0.3');
+        
+        // Set the color for the ::before pseudo-element
+        folderDiv.style.setProperty('--folder-accent-color', colorValue.replace('0.6', '0.8'));
+        
+        // Add or update color indicator in the folder header
+        let folderHeader = folderDiv.querySelector('.folder-header');
+        let colorIndicator = folderHeader.querySelector('.folder-color-indicator');
+        
+        if (!colorIndicator) {
+            colorIndicator = document.createElement('span');
+            colorIndicator.className = 'folder-color-indicator';
+            folderHeader.insertBefore(colorIndicator, folderHeader.firstChild);
+        }
+        
+        colorIndicator.style.backgroundColor = colorValue.replace('0.6', '0.9');
+        
+        // Adjust the folder icon color to complement the background
+        const folderIcon = folderDiv.querySelector('.folder-icon');
+        if (folderIcon) {
+            // Extract the base color from the rgba value
+            const colorMatch = colorValue.match(/rgba\((\d+),\s*(\d+),\s*(\d+)/);
+            if (colorMatch) {
+                const r = parseInt(colorMatch[1]);
+                const g = parseInt(colorMatch[2]);
+                const b = parseInt(colorMatch[3]);
+                folderIcon.style.color = `rgb(${r}, ${g}, ${b})`;
+            } else {
+                folderIcon.style.color = 'rgba(255, 255, 255, 0.9)';
+            }
+        }
+    } else {
+        // Reset to default styling
+        folderDiv.removeAttribute('data-has-color');
+        folderDiv.style.backgroundColor = '';
+        folderDiv.style.borderColor = '';
+        folderDiv.style.setProperty('--folder-accent-color', '');
+        
+        // Remove color indicator if it exists
+        const colorIndicator = folderDiv.querySelector('.folder-color-indicator');
+        if (colorIndicator) {
+            colorIndicator.remove();
+        }
+        
+        const folderIcon = folderDiv.querySelector('.folder-icon');
+        if (folderIcon) {
+            folderIcon.style.color = '';
+        }
+    }
+}
+
+// Function to apply color to a checkbox item
+function applyCheckboxItemColor(checkboxItem, colorValue) {
+    if (colorValue) {
+        // Set data attribute to indicate this item has a color
+        checkboxItem.setAttribute('data-has-color', 'true');
+        
+        // Apply a subtle background color
+        checkboxItem.style.backgroundColor = colorValue.replace('0.6', '0.2');
+        checkboxItem.style.borderColor = colorValue.replace('0.6', '0.4');
+        
+        // Add a color indicator
+        let colorIndicator = checkboxItem.querySelector('.checkbox-color-indicator');
+        if (!colorIndicator) {
+            colorIndicator = document.createElement('span');
+            colorIndicator.className = 'checkbox-color-indicator';
+            checkboxItem.appendChild(colorIndicator);
+        }
+        
+        colorIndicator.style.backgroundColor = colorValue.replace('0.6', '0.9');
+        
+        // Update the folder icon color
+        const folderIcon = checkboxItem.querySelector('.folder-icon-wrapper');
+        if (folderIcon) {
+            // Extract the base color from the rgba value
+            const colorMatch = colorValue.match(/rgba\((\d+),\s*(\d+),\s*(\d+)/);
+            if (colorMatch) {
+                const r = parseInt(colorMatch[1]);
+                const g = parseInt(colorMatch[2]);
+                const b = parseInt(colorMatch[3]);
+                folderIcon.style.color = `rgb(${r}, ${g}, ${b})`;
+            } else {
+                folderIcon.style.color = 'rgba(255, 255, 255, 0.9)';
+            }
+        }
+        
+        // Update the color button tooltip
+        const colorButton = checkboxItem.querySelector('.checkbox-color-btn');
+        if (colorButton) {
+            colorButton.title = "Change folder color";
+        }
+    } else {
+        // Reset to default styling
+        checkboxItem.removeAttribute('data-has-color');
+        checkboxItem.style.backgroundColor = '';
+        checkboxItem.style.borderColor = '';
+        
+        // Remove color indicator if it exists
+        const colorIndicator = checkboxItem.querySelector('.checkbox-color-indicator');
+        if (colorIndicator) {
+            colorIndicator.remove();
+        }
+        
+        // Reset the folder icon color
+        const folderIcon = checkboxItem.querySelector('.folder-icon-wrapper');
+        if (folderIcon) {
+            folderIcon.style.color = '';
+        }
+        
+        // Update the color button tooltip
+        const colorButton = checkboxItem.querySelector('.checkbox-color-btn');
+        if (colorButton) {
+            colorButton.title = "Add folder color";
+        }
+    }
 }
