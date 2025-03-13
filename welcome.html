@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to My Extension</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 30px;
+            background: linear-gradient(135deg, #1e2a38 0%, #2c3e50 100%);
+            color: #ecf0f1;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            color: #3498db;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .tips-section {
+            text-align: center;
+        }
+        .gif-container {
+            position: relative;
+            width: 600px;
+            height: 300px;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .gif {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .gif.active {
+            opacity: 1;
+        }
+        .tip-text {
+            font-size: 1.2em;
+            color: #bdc3c7;
+            margin: 10px 0;
+        }
+        .tip-text strong {
+            color: #3498db;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 12px 30px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .close-btn {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to My Extension!</h1>
+        
+        <div class="tips-section">
+            <h2>Tips & Tricks</h2>
+            <div class="gif-container">
+                <img src="animation1.gif" class="gif active" alt="Tip 1">
+                <img src="animation2.gif" class="gif" alt="Tip 2">
+                <img src="animation3.gif" class="gif" alt="Tip 3">
+            </div>
+            <div class="tip-text" id="tip-text">
+                <strong>Tip 1: Activate It</strong> - Click the extension icon on chatgpt.com to get started.
+            </div>
+            <button id="next-btn">Next</button>
+        </div>
+
+        <button class="close-btn" id="close-btn">Close</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

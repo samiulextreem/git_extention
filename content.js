@@ -2,6 +2,7 @@ console.log("Current URL from content.js:", window.location.href);
 console.log("content.js loaded");
 
 
+
 let currentChat = {
     title: "", // Default empty string
     href: ""   // Default empty string
@@ -249,7 +250,7 @@ async function fetchFromChromeStorage() {
             
             // Save the default structure to Chrome storage
             await chrome.storage.sync.set(defaultFolderStructure);
-            console.log("[Overlay] folder structure not found. Pushed default folders:", defaultFolders);
+            //console.log("[Overlay] folder structure not found. Pushed default folders:", defaultFolders);
             response = await pullDataFromChromeStorage(); // Fetch again after setting defaults
         } else {
             let folderNames = response.folder_structure.chatgpt.Folders.map(folder => folder.Folder_Name);
@@ -783,7 +784,7 @@ function createMenuButton() {
             const response = await fetchFromChromeStorage();
             // Update the local folders array with the latest data from storage
             folders = response.folder_structure.chatgpt.Folders || [];
-            console.log('[renderFolders] fetched folders:', folders);
+            // console.log('[renderFolders] fetched folders:', folders);
             
             // If no folders exist, show a message
             if (!folders || folders.length === 0) {
@@ -1380,7 +1381,7 @@ domObserver.observe(document.documentElement, { childList: true, subtree: true }
 // Use MutationObserver to handle dynamic DOM loading
 const domwatcherforaskbox = new MutationObserver((mutations) => {
   if (document.body) {
-    console.log("Document body found, adding mousemove listener");
+    // console.log("Document body found, adding mousemove listener");
 
     domwatcherforaskbox.disconnect(); // Stop observing once body is found
 
@@ -1418,41 +1419,14 @@ domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree
 //==================================================================//
 
 
-// Function to generate and download the PDF
 
-  // Create and style the button
-function pdfmaker() {
-    const button = document.createElement("button");
-    button.id = "pdf-download-btn"; // Unique ID to avoid duplicates
-    
-    // Create PDF icon using SVG instead of text
-    button.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="12" y1="18" x2="12" y2="12"></line>
-            <line x1="9" y1="15" x2="15" y2="15"></line>
-        </svg>
-    `;
-  
-    // Add click event to trigger PDF generation
-    button.addEventListener("click", () => {
-        scrollToEndAndCreatePDF();
-    });
-
-    // Append the button to the body (only if it doesn't already exist)
-    if (!document.getElementById("pdf-download-btn")) {
-        document.body.appendChild(button);
-    }
-}
-  
 // Execute the button creation when the script loads
 
 
-
+//orginal screenshot capture function
 
 async function captureInvertedScreenshotAsImage(options = {}) {
-    const { startXPercent = 0.35, widthPercent = 0.65 } = options;
+    const { startXPercent = 0.1, widthPercent = 1 } = options;
 
     console.log("Capturing and inverting colors...");
 
@@ -1518,6 +1492,7 @@ async function captureInvertedScreenshotAsImage(options = {}) {
     };
 }
 
+
 async function scrollToEndAndCreatePDF(options = {}) {
     const {
         stepSize = window.innerHeight,
@@ -1537,6 +1512,7 @@ async function scrollToEndAndCreatePDF(options = {}) {
 
     let totalHeight = scrollContainer.scrollHeight;
     let currentPosition = 0;
+
     const capturedImages = [];
 
     console.log(`Container Height: ${scrollContainer.clientHeight}, Total Scrollable Height: ${totalHeight}`);
@@ -1974,60 +1950,594 @@ function applyCheckboxItemColor(checkboxItem, colorValue) {
 
 
 
-document.querySelector("body > div.flex.h-full.w-full.flex-col > div > div.relative.flex.h-full.w-full.flex-row.overflow-hidden > div.relative.flex.h-full.max-w-full.flex-1.flex-col.overflow-hidden > main > div.composer-parent.flex.h-full.flex-col.focus-visible\\:outline-0 > div.isolate.w-full.basis-auto.has-\\[\\[data-has-thread-error\\]\\]\\:pt-2.has-\\[\\[data-has-thread-error\\]\\]\\:\\[box-shadow\\:var\\(--sharp-edge-bottom-shadow\\)\\].dark\\:border-white\\/20.md\\:border-transparent.md\\:pt-0.md\\:dark\\:border-transparent > div.relative.flex.min-h-8.w-full.items-center.justify-center.p-2.text-center.text-xs.text-token-text-secondary.md\\:px-\\[60px\\] > div").style.display = 'none';
+// Function to generate and download the PDF
 
+  // Create and style the button
+function pdfmaker() {
+    const button = document.createElement("button");
+    button.id = "pdf-download-btn"; // Unique ID to avoid duplicates
+    
+    // Create PDF icon using SVG instead of text
+    button.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
+    `;
+  
+    // Add click event to trigger PDF generation
+    button.addEventListener("click", () => {
+        // scrollToEndAndCreatePDF();
+        
+        extractAndExportMessageContent();
+    });
 
+    // Append the button to the body (only if it doesn't already exist)
+    if (!document.getElementById("pdf-download-btn")) {
+        document.body.appendChild(button);
+    }
+}
+  
+function extractAndExportMessageContent() {
+  const elements = document.querySelectorAll('[data-message-author-role]');
+  const messages = [];
+  const softwarename = "ChatGPT Organizer";
+  const title = "Conversation generated by ChatGPT Organizer";
+  const href = window.location.href;
 
-// Create the vertical line
-let vLine = document.createElement("div");
-vLine.style.position = "absolute";
-vLine.style.top = "0";
-vLine.style.left = "50%";
-vLine.style.width = "2px";
-vLine.style.height = "100vh";
-vLine.style.backgroundColor = "black";
-vLine.style.transform = "translateX(-50%)";
-document.body.appendChild(vLine);
+  elements.forEach((element, index) => {
+    const role = element.getAttribute('data-message-author-role');
+    const messageId = element.getAttribute('data-message-id') || `unknown-${index}`;
+    const modelSlug = role === 'assistant' ? (element.getAttribute('data-message-model-slug') || 'unknown-model') : null;
+    const contentHTML = element.innerHTML;
 
-// Create the horizontal line
-let hLine = document.createElement("div");
-hLine.style.position = "absolute";
-hLine.style.top = "50%";
-hLine.style.left = "0";
-hLine.style.width = "100vw";
-hLine.style.height = "2px";
-hLine.style.backgroundColor = "black";
-hLine.style.transform = "translateY(-50%)";
-document.body.appendChild(hLine);
+    messages.push({
+      id: messageId,
+      role: role,
+      modelSlug: modelSlug,
+      contentHTML: contentHTML,
+      index: index
+    });
+  });
 
-// Function to create vertical percentage markers (for height)
-function createVerticalMarker(percent) {
-    let marker = document.createElement("div");
-    marker.innerText = percent + "%";
-    marker.style.position = "absolute";
-    marker.style.left = "calc(50% + 8px)"; // Slightly to the right of the line
-    marker.style.top = `calc(${percent}vh - 7px)`;
-    marker.style.color = "black";
-    marker.style.fontSize = "12px";
-    marker.style.fontWeight = "bold";
-    document.body.appendChild(marker);
+  const newWindow = window.open('', '_blank', 'width=800,height=600');
+  
+  newWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Conversation generated by ${softwarename}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            background: #f5f6f5;
+            color: #333;
+            line-height: 1.6;
+          }
+          .container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+          }
+          .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #2c3e50;
+          }
+          .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+          }
+          .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+          }
+          .message:hover {
+            transform: translateY(-2px);
+          }
+          .role-user .content {
+            background: #ffffff;
+          }
+          .role-assistant .content {
+            background: #f8f9ff;
+          }
+          .role {
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .content {
+            padding: 10px;
+            border-radius: 4px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+          }
+          .model-slug {
+            color: #888;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: normal;
+          }
+          /* Dark theme for code blocks */
+          pre, code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            max-width: 100%;
+            display: block;
+          }
+          pre {
+            padding: 12px;
+            margin: 8px 0;
+          }
+          code {
+            padding: 2px 6px;
+            display: inline-block;
+          }
+          /* Beautiful table styling */
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+          }
+          th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          th {
+            background: #2c3e50;
+            color: #ffffff;
+            font-weight: 600;
+          }
+          tr:nth-child(even) {
+            background: #f9fafb;
+          }
+          tr:hover {
+            background: #f1f5f9;
+          }
+          td {
+            vertical-align: top;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Conversation generated by ${softwarename}</h1>
+            <p>PDF exported by ${softwarename} on ${new Date().toLocaleString()}.</p>
+            <p>Title: ${title}</p>
+            <p>URL: ${href}</p>
+          </div>
+          ${messages.map(msg => `
+            <div class="message role-${msg.role}">
+              <div class="role">
+                ${msg.role}
+                ${msg.modelSlug ? `<span class="model-slug">(${msg.modelSlug})</span>` : ''}
+              </div>
+              <div class="content">${msg.contentHTML}</div>
+            </div>
+          `).join('')}
+        </div>
+      </body>
+    </html>
+  `);
+  
+  newWindow.document.close();
+//   console.log('[extractAndExportMessageContent] messages:', messages);
 }
 
-// Function to create horizontal percentage markers (for width)
-function createHorizontalMarker(percent) {
-    let marker = document.createElement("div");
-    marker.innerText = percent + "%";
-    marker.style.position = "absolute";
-    marker.style.top = "calc(50% + 8px)"; // Slightly below the line
-    marker.style.left = `calc(${percent}vw - 10px)`;
-    marker.style.color = "black";
-    marker.style.fontSize = "12px";
-    marker.style.fontWeight = "bold";
-    document.body.appendChild(marker);
+function extractAndExportMessageContent() {
+  const elements = document.querySelectorAll('[data-message-author-role]');
+  const messages = [];
+  const softwarename = "ChatGPT Organizer";
+  const title = "Conversation generated by ChatGPT Organizer";
+  const href = window.location.href;
+
+  elements.forEach((element, index) => {
+    const role = element.getAttribute('data-message-author-role');
+    const messageId = element.getAttribute('data-message-id') || `unknown-${index}`;
+    const modelSlug = role === 'assistant' ? (element.getAttribute('data-message-model-slug') || 'unknown-model') : null;
+    const contentHTML = element.innerHTML;
+
+    messages.push({
+      id: messageId,
+      role: role,
+      modelSlug: modelSlug,
+      contentHTML: contentHTML,
+      index: index
+    });
+  });
+
+  const newWindow = window.open('', '_blank', 'width=800,height=600');
+  
+  newWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Conversation generated by ${softwarename}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            background: #f5f6f5;
+            color: #333;
+            line-height: 1.6;
+          }
+          .container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+          }
+          .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #2c3e50;
+          }
+          .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+          }
+          .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+          }
+          .message:hover {
+            transform: translateY(-2px);
+          }
+          .role-user .content {
+            background: #ffffff;
+          }
+          .role-assistant .content {
+            background: #f8f9ff;
+          }
+          .role {
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .content {
+            padding: 10px;
+            border-radius: 4px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+          }
+          .model-slug {
+            color: #888;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: normal;
+          }
+          /* Dark theme for code blocks */
+          pre, code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            max-width: 100%;
+            display: block;
+          }
+          pre {
+            padding: 12px;
+            margin: 8px 0;
+          }
+          code {
+            padding: 2px 6px;
+            display: inline-block;
+          }
+          /* Beautiful table styling */
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+          }
+          th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          th {
+            background: #2c3e50;
+            color: #ffffff;
+            font-weight: 600;
+          }
+          tr:nth-child(even) {
+            background: #f9fafb;
+          }
+          tr:hover {
+            background: #f1f5f9;
+          }
+          td {
+            vertical-align: top;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Conversation generated by ${softwarename}</h1>
+            <p>PDF exported by ${softwarename} on ${new Date().toLocaleString()}.</p>
+            <p>Title: ${title}</p>
+            <p>URL: ${href}</p>
+          </div>
+          ${messages.map(msg => `
+            <div class="message role-${msg.role}">
+              <div class="role">
+                ${msg.role}
+                ${msg.modelSlug ? `<span class="model-slug">(${msg.modelSlug})</span>` : ''}
+              </div>
+              <div class="content">${msg.contentHTML}</div>
+            </div>
+          `).join('')}
+        </div>
+      </body>
+    </html>
+  `);
+  
+  newWindow.document.close();
+
+  // Show your specific notification
+  showNotification(newWindow, "PDF exported successfully!");
+
+  console.log('[extractAndExportMessageContent] messages:', messages);
 }
 
-// Add percentage markers at every 10% interval for height and width
-for (let i = 0; i <= 100; i += 5) {
-    createVerticalMarker(i);
-    createHorizontalMarker(i);
+// Notification function
+function extractAndExportMessageContent() {
+  const elements = document.querySelectorAll('[data-message-author-role]');
+  const messages = [];
+  const softwarename = "ChatGPT Organizer";
+  const title = "Conversation generated by ChatGPT Organizer";
+  const href = window.location.href;
+
+  elements.forEach((element, index) => {
+    const role = element.getAttribute('data-message-author-role');
+    const messageId = element.getAttribute('data-message-id') || `unknown-${index}`;
+    const modelSlug = role === 'assistant' ? (element.getAttribute('data-message-model-slug') || 'unknown-model') : null;
+    const contentHTML = element.innerHTML;
+
+    messages.push({
+      id: messageId,
+      role: role,
+      modelSlug: modelSlug,
+      contentHTML: contentHTML,
+      index: index
+    });
+  });
+
+  const newWindow = window.open('', '_blank', 'width=800,height=600');
+  
+  newWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Conversation generated by ${softwarename}</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            background: #f5f6f5;
+            color: #333;
+            line-height: 1.6;
+          }
+          .container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+          }
+          .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #2c3e50;
+          }
+          .header p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #555;
+          }
+          .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+          }
+          .message:hover {
+            transform: translateY(-2px);
+          }
+          .role-user .content {
+            background: #ffffff;
+          }
+          .role-assistant .content {
+            background: #f8f9ff;
+          }
+          .role {
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .content {
+            padding: 10px;
+            border-radius: 4px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+          }
+          .model-slug {
+            color: #888;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: normal;
+          }
+          pre, code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            max-width: 100%;
+            display: block;
+          }
+          pre {
+            padding: 12px;
+            margin: 8px 0;
+          }
+          code {
+            padding: 2px 6px;
+            display: inline-block;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+          }
+          th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          th {
+            background: #2c3e50;
+            color: #ffffff;
+            font-weight: 600;
+          }
+          tr:nth-child(even) {
+            background: #f9fafb;
+          }
+          tr:hover {
+            background: #f1f5f9;
+          }
+          td {
+            vertical-align: top;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Conversation generated by ${softwarename}</h1>
+            <p>PDF exported by ${softwarename} on ${new Date().toLocaleString()}.</p>
+            <p>Title: ${title}</p>
+            <p>URL: ${href}</p>
+          </div>
+          ${messages.map(msg => `
+            <div class="message role-${msg.role}">
+              <div class="role">
+                ${msg.role}
+                ${msg.modelSlug ? `<span class="model-slug">(${msg.modelSlug})</span>` : ''}
+              </div>
+              <div class="content">${msg.contentHTML}</div>
+            </div>
+          `).join('')}
+        </div>
+      </body>
+    </html>
+  `);
+  
+  newWindow.document.close();
+
+  // Show notification in the current window
+  showNotification("PDF exported successfully press ctrl+p to send to your printer!");
+
+  console.log('[extractAndExportMessageContent] messages:', messages);
 }
+
+// Updated notification function for current window with slide-in from bottom-right
+function showNotification(message, duration = 5000) {
+  const notification = document.createElement('div');
+  notification.innerHTML = message;
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background: rgba(46, 204, 113, 0.9); /* Soft green for success */
+    color: #ffffff;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 1000;
+    transform: translateY(100px); /* Start below the viewport */
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Slide in and fade in
+  setTimeout(() => {
+    notification.style.transform = 'translateY(0)';
+    notification.style.opacity = '1';
+  }, 100);
+
+  // Slide out and fade out after duration
+  setTimeout(() => {
+    notification.style.transform = 'translateY(100px)';
+    notification.style.opacity = '0';
+    setTimeout(() => {
+      notification.remove();
+    }, 300); // Match transition duration
+  }, duration);
+}
+
+

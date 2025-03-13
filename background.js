@@ -114,3 +114,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true; // Keep the message port open
     }
 });
+
+
+
+chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason === "install") {
+        chrome.storage.local.get(["hasSeenWelcome"], (result) => {
+            if (!result.hasSeenWelcome) {
+                chrome.tabs.create({ url: "welcome.html" });
+                chrome.storage.local.set({ "hasSeenWelcome": true });
+            }
+        });
+    }
+});

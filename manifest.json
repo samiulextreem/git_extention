@@ -12,10 +12,17 @@
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*","https://x.com/i/grok"],
-      "js": ["html2pdf.bundle.min.js","html2canvas.min.js","jspdf.min.js","content.js"],
+      "js": ["jspdf.min.js", "html2canvas.min.js", "html2pdf.bundle.min.js", "content.js", "script.js"],
       "css": ["style.css"]
     }
   ],
+  "web_accessible_resources": [
+    {
+        "resources": ["welcome.html"],
+        "matches": ["<all_urls>"]
+    }
+  ],
+
   "permissions": ["storage", "activeTab", "scripting", "identity","tabs","downloads"],
   "host_permissions": ["<all_urls>"],
   
