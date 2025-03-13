@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 
 			const data = await response.json();
+			console.log('[login_popup.js]  data', data);
 			
 			if (data.authenticated == true) {
 				showMessage('Login successful! Redirecting...', 'success');

@@ -1,7 +1,9 @@
 console.log("Current URL from content.js:", window.location.href);
-console.log("content.js loaded");
 
-
+if (!window.location.href.includes("chatgpt.com")){
+    showButtonOnTextSelection();
+}
+    
 
 let currentChat = {
     title: "", // Default empty string
@@ -9,13 +11,41 @@ let currentChat = {
 };
 let isSearchVisible = true;
 let overlayActvated = false;
+const isLoggedIn = true;
+
+// // content.js
+// document.addEventListener("DOMContentLoaded", () => {
+//     // Check for a logout button or other login indicator (adjust selector based on chatgpt.com)
+
+//     // Print to console
+//     if (isLoggedIn) {
+//         console.log("User is logged in to chatgpt.com");
+//     } else {
+//         console.log("User is not logged in to chatgpt.com");
+//     }
+
+//     // Store login status in chrome.storage.local
+//     chrome.storage.local.set({ "isLoggedIn": isLoggedIn }, () => {
+//         console.log("Login status saved to local storage: ", isLoggedIn);
+//     });
+// });
 
 
-
-showButtonOnTextSelection();
 manageConversationButtonsAndTitles();
 pdfmaker();
 
+
+function loginchecker(){
+    chrome.storage.sync.get("email", (result) => {
+        if (result.email) {
+            console.log("Email found in sync storage: ", result.email);
+            isLoggedIn = true;
+        } else {
+            console.log("No email field exists in chrome.storage.sync");
+            isLoggedIn = false;
+        }
+    });
+}
 
 
 function showButtonOnTextSelection() {
@@ -601,9 +631,10 @@ async function checkAuthStatus(email) {
         }
 
         const data = await response.json();
+        console.log('[checkAuthStatus]  data', data);
         
         if (data.authenticated == true){
-            console.log('content.js log in successful', data.authenticated);
+            console.log('log in successful', data.authenticated);
             mergeSyncAndUpdateChromeStorage(email, null);
         }
 
@@ -632,28 +663,6 @@ function mergeSyncAndUpdateChromeStorage(useremail, existingData) {
             console.error('Failed to sync:', error);
         });
 }
-async function pullDataFromFirebaseServer(email) {
-    try {
-        const response = await fetch(`http://localhost:8080/api/sync_data?email=${encodeURIComponent(email)}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-
-        const data = await response.json();
-		return data;
-    } catch (error) {
-        console.error('Error syncing data:', error);
-        throw error;
-    }
-}
-
-
 
 
 
@@ -663,6 +672,11 @@ async function pullDataFromFirebaseServer(email) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "pullDataFromChromeStorage") {
         pullDataFromChromeStorage();
+    }
+
+    if (request.action === "updatenotification") {
+        console.log('updatenotification', request.data);
+        showNotification('welcome back '+request.data);
     }
 });
 
@@ -1362,19 +1376,15 @@ function createMenuButton() {
 }
 
 // Use MutationObserver to handle dynamic DOM loading
-const domObserver = new MutationObserver((mutations) => {
+const dommenubuttoncreator = new MutationObserver((mutations) => {
     if (document.body) {
         console.log("DOM ready, adding button and overlay");
-        domObserver.disconnect(); // Stop observing once body is found
-        
+        dommenubuttoncreator.disconnect(); // Stop observing once body is found
+        loginchecker();
         // Call the function to create menu button and overlay
         const menuElements = createMenuButton();
     }
 });
-
-// Start observing the document for changes
-domObserver.observe(document.documentElement, { childList: true, subtree: true });
-
 
 
 
@@ -1400,7 +1410,6 @@ const domwatcherforaskbox = new MutationObserver((mutations) => {
             } else {
                 hideFlexSection();
             }
-            
             // Replace absolute position logging with percentages
             // const yPercent = ((mouseY / window.innerHeight) * 100).toFixed(2);
             // const xPercent = ((mouseX / window.innerWidth) * 100).toFixed(2);
@@ -1412,179 +1421,6 @@ const domwatcherforaskbox = new MutationObserver((mutations) => {
   }
 });
 
-// Start observing the document for changes
-domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree: true });
-
-
-//==================================================================//
-
-
-
-// Execute the button creation when the script loads
-
-
-//orginal screenshot capture function
-
-async function captureInvertedScreenshotAsImage(options = {}) {
-    const { startXPercent = 0.1, widthPercent = 1 } = options;
-
-    console.log("Capturing and inverting colors...");
-
-    // Capture full viewport
-    const fullScreenshot = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: "capture" }, (response) => {
-            if (chrome.runtime.lastError) {
-                console.error("Message error:", chrome.runtime.lastError.message);
-                resolve(null);
-                return;
-            }
-            if (!response || !response.dataUrl) {
-                console.error("Capture failed: No data URL received", response);
-                resolve(null);
-                return;
-            }
-            resolve(response.dataUrl);
-        });
-    });
-
-    if (!fullScreenshot) {
-        console.error("Failed to capture full screenshot.");
-        return null;
-    }
-
-    // Load the full screenshot into an image
-    const img = new Image();
-    img.src = fullScreenshot;
-    await new Promise((resolve) => (img.onload = resolve));
-
-    // Define crop dimensions
-    const fullWidth = img.width;
-    const fullHeight = img.height;
-    const startX = Math.floor(fullWidth * startXPercent);
-    const cropWidth = Math.floor(fullWidth * widthPercent);
-
-    // Create canvas for cropping and inverting
-    const canvas = document.createElement("canvas");
-    canvas.width = cropWidth;
-    canvas.height = fullHeight;
-    const ctx = canvas.getContext("2d");
-
-    // Draw the cropped portion
-    ctx.drawImage(img, startX, 0, cropWidth, fullHeight, 0, 0, cropWidth, fullHeight);
-
-    // Invert colors
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-        data[i] = 255 - data[i];     // Red
-        data[i + 1] = 255 - data[i + 1]; // Green
-        data[i + 2] = 255 - data[i + 2]; // Blue
-    }
-
-    ctx.putImageData(imageData, 0, 0);
-
-    // Return the image data
-    return {
-        dataUrl: canvas.toDataURL("image/png"),
-        width: cropWidth,
-        height: fullHeight
-    };
-}
-
-
-async function scrollToEndAndCreatePDF(options = {}) {
-    const {
-        stepSize = window.innerHeight,
-        delayMs = 1000,
-        fileName = "complete_document",
-        onScroll = (pos, total) => console.log(`Scrolled to ${pos}/${total}`)
-    } = options;
-
-    const { jsPDF } = window.jspdf;
-
-    const scrollContainer = document.querySelector("body > div.flex.h-full.w-full.flex-col > div > div.relative.flex.h-full.w-full.flex-row.overflow-hidden > div > main > div.composer-parent.flex.h-full.flex-col.focus-visible\\:outline-0 > div.flex-1.grow.basis-auto.overflow-hidden.\\@container\\/thread > div > div");
-
-    if (!scrollContainer) {
-        console.error("Scroll container not found!");
-        return;
-    }
-
-    let totalHeight = scrollContainer.scrollHeight;
-    let currentPosition = 0;
-
-    const capturedImages = [];
-
-    console.log(`Container Height: ${scrollContainer.clientHeight}, Total Scrollable Height: ${totalHeight}`);
-
-    if (totalHeight <= scrollContainer.clientHeight) {
-        console.warn("Container height is less than or equal to visible height. Capturing single image.");
-        const imageData = await captureInvertedScreenshotAsImage();
-        if (imageData) capturedImages.push(imageData);
-    } else {
-        console.log(`Starting scroll. Step size: ${stepSize}, Total height: ${totalHeight}`);
-
-        while (currentPosition < totalHeight) {
-            await new Promise((resolve) => setTimeout(resolve, delayMs));
-
-            const actualPosition = scrollContainer.scrollTop;
-            if (actualPosition !== currentPosition) {
-                console.warn(`Scroll mismatch: Expected ${currentPosition}, Got ${actualPosition}`);
-                scrollContainer.scrollTo({ top: currentPosition });
-                await new Promise((resolve) => setTimeout(resolve, delayMs / 2));
-            }
-
-            const imageData = await captureInvertedScreenshotAsImage();
-            if (imageData) capturedImages.push(imageData);
-
-            onScroll(currentPosition, totalHeight);
-
-            currentPosition += stepSize;
-            totalHeight = scrollContainer.scrollHeight;
-            console.log(`Updated Total Height: ${totalHeight}`);
-
-            if (currentPosition + stepSize > totalHeight) {
-                currentPosition = totalHeight;
-            }
-        }
-    }
-
-    console.log("Reached the end of the scrollable container!");
-    console.log(`Creating PDF with ${capturedImages.length} pages`);
-
-    // Create single PDF
-    const doc = new jsPDF({
-        unit: "px",
-        format: "a4"
-    });
-    const a4Width = 595;
-    const a4Height = 842;
-
-    capturedImages.forEach((image, index) => {
-        if (index > 0) doc.addPage();
-        
-        const scaleFactor = a4Width / image.width;
-        const scaledHeight = image.height * scaleFactor;
-        
-        doc.addImage(image.dataUrl, "PNG", 0, 0, a4Width, Math.min(scaledHeight, a4Height));
-    });
-
-    doc.save(`${fileName}.pdf`);
-    console.log(`Saved complete document as ${fileName}.pdf`);
-}
-
-// Function to update print button visibility
-function updatePrintButton() {
-    const checkedFolders = document.querySelectorAll('.folder-checkbox:checked');
-    const printButton = document.querySelector('.print-checked-button');
-    
-    if (checkedFolders.length > 0) {
-        printButton.style.display = "flex";
-        printButton.querySelector('span').textContent = `Print Selected (${checkedFolders.length})`;
-    } else {
-        printButton.style.display = "none";
-    }
-}
 
 // Function to print checked folders to console
 function printCheckedFolders() {
@@ -1949,10 +1785,8 @@ function applyCheckboxItemColor(checkboxItem, colorValue) {
 }
 
 
-
 // Function to generate and download the PDF
 
-  // Create and style the button
 function pdfmaker() {
     const button = document.createElement("button");
     button.id = "pdf-download-btn"; // Unique ID to avoid duplicates
@@ -1969,8 +1803,6 @@ function pdfmaker() {
   
     // Add click event to trigger PDF generation
     button.addEventListener("click", () => {
-        // scrollToEndAndCreatePDF();
-        
         extractAndExportMessageContent();
     });
 
@@ -1981,563 +1813,213 @@ function pdfmaker() {
 }
   
 function extractAndExportMessageContent() {
-  const elements = document.querySelectorAll('[data-message-author-role]');
-  const messages = [];
-  const softwarename = "ChatGPT Organizer";
-  const title = "Conversation generated by ChatGPT Organizer";
-  const href = window.location.href;
+    const elements = document.querySelectorAll('[data-message-author-role]');
+    const messages = [];
+    const softwarename = "ChatGPT Organizer";
+    const href = window.location.href;
 
-  elements.forEach((element, index) => {
-    const role = element.getAttribute('data-message-author-role');
-    const messageId = element.getAttribute('data-message-id') || `unknown-${index}`;
-    const modelSlug = role === 'assistant' ? (element.getAttribute('data-message-model-slug') || 'unknown-model') : null;
-    const contentHTML = element.innerHTML;
+    elements.forEach((element, index) => {
+        const role = element.getAttribute('data-message-author-role');
+        const messageId = element.getAttribute('data-message-id') || `unknown-${index}`;
+        const modelSlug = role === 'assistant' ? (element.getAttribute('data-message-model-slug') || 'unknown-model') : null;
+        const contentHTML = element.innerHTML;
 
-    messages.push({
-      id: messageId,
-      role: role,
-      modelSlug: modelSlug,
-      contentHTML: contentHTML,
-      index: index
+        messages.push({
+        id: messageId,
+        role: role,
+        modelSlug: modelSlug,
+        contentHTML: contentHTML,
+        index: index
+        });
     });
-  });
 
-  const newWindow = window.open('', '_blank', 'width=800,height=600');
-  
-  newWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Conversation generated by ${softwarename}</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
-            background: #f5f6f5;
-            color: #333;
-            line-height: 1.6;
-          }
-          .container {
-            max-width: 700px;
-            margin: 40px auto;
-            padding: 0 20px;
-          }
-          .header {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 30px;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #2c3e50;
-          }
-          .header p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #555;
-          }
-          .message {
-            margin-bottom: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease;
-          }
-          .message:hover {
-            transform: translateY(-2px);
-          }
-          .role-user .content {
-            background: #ffffff;
-          }
-          .role-assistant .content {
-            background: #f8f9ff;
-          }
-          .role {
-            font-weight: 600;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          .content {
-            padding: 10px;
-            border-radius: 4px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            max-width: 100%;
-          }
-          .model-slug {
-            color: #888;
-            font-size: 12px;
-            margin-left: 8px;
-            font-weight: normal;
-          }
-          /* Dark theme for code blocks */
-          pre, code {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 13px;
-            overflow-x: auto;
-            max-width: 100%;
-            display: block;
-          }
-          pre {
-            padding: 12px;
-            margin: 8px 0;
-          }
-          code {
-            padding: 2px 6px;
-            display: inline-block;
-          }
-          /* Beautiful table styling */
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            background: #ffffff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-radius: 6px;
-            overflow: hidden;
-          }
-          th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-          }
-          th {
-            background: #2c3e50;
-            color: #ffffff;
-            font-weight: 600;
-          }
-          tr:nth-child(even) {
-            background: #f9fafb;
-          }
-          tr:hover {
-            background: #f1f5f9;
-          }
-          td {
-            vertical-align: top;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Conversation generated by ${softwarename}</h1>
-            <p>PDF exported by ${softwarename} on ${new Date().toLocaleString()}.</p>
-            <p>Title: ${title}</p>
-            <p>URL: ${href}</p>
-          </div>
-          ${messages.map(msg => `
-            <div class="message role-${msg.role}">
-              <div class="role">
-                ${msg.role}
-                ${msg.modelSlug ? `<span class="model-slug">(${msg.modelSlug})</span>` : ''}
-              </div>
-              <div class="content">${msg.contentHTML}</div>
+    const newWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Conversation generated by ${softwarename}</title>
+            <style>
+            body {
+                font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+                margin: 0;
+                background: #f5f6f5;
+                color: #333;
+                line-height: 1.6;
+            }
+            .container {
+                max-width: 700px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            .header {
+                text-align: center;
+                padding: 20px 0;
+                border-bottom: 1px solid #e0e0e0;
+                margin-bottom: 30px;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                color: #2c3e50;
+            }
+            .header p {
+                margin: 5px 0;
+                font-size: 14px;
+                color: #555;
+            }
+            .message {
+                margin-bottom: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                transition: transform 0.2s ease;
+            }
+            .message:hover {
+                transform: translateY(-2px);
+            }
+            .role-user .content {
+                background: #ffffff;
+            }
+            .role-assistant .content {
+                background: #f8f9ff;
+            }
+            .role {
+                font-weight: 600;
+                font-size: 14px;
+                color: #666;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .content {
+                padding: 10px;
+                border-radius: 4px;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                max-width: 100%;
+            }
+            .model-slug {
+                color: #888;
+                font-size: 12px;
+                margin-left: 8px;
+                font-weight: normal;
+            }
+            /* Dark theme for code blocks */
+            pre, code {
+                background: #1e1e1e;
+                color: #d4d4d4;
+                padding: 8px 12px;
+                border-radius: 4px;
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 13px;
+                overflow-x: auto;
+                max-width: 100%;
+                display: block;
+            }
+            pre {
+                padding: 12px;
+                margin: 8px 0;
+            }
+            code {
+                padding: 2px 6px;
+                display: inline-block;
+            }
+            /* Beautiful table styling */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0;
+                background: #ffffff;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                border-radius: 6px;
+                overflow: hidden;
+            }
+            th, td {
+                padding: 12px 15px;
+                text-align: left;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            th {
+                background: #2c3e50;
+                color: #ffffff;
+                font-weight: 600;
+            }
+            tr:nth-child(even) {
+                background: #f9fafb;
+            }
+            tr:hover {
+                background: #f1f5f9;
+            }
+            td {
+                vertical-align: top;
+            }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+            <div class="header">
+                <h1>PDF exported by ${softwarename} on ${new Date().toLocaleString()}.</h1>
+                <p>URL: ${href}</p>
             </div>
-          `).join('')}
-        </div>
-      </body>
-    </html>
-  `);
-  
-  newWindow.document.close();
-//   console.log('[extractAndExportMessageContent] messages:', messages);
+            ${messages.map(msg => `
+                <div class="message role-${msg.role}">
+                <div class="role">
+                    ${msg.role}
+                    ${msg.modelSlug ? `<span class="model-slug">(${msg.modelSlug})</span>` : ''}
+                </div>
+                <div class="content">${msg.contentHTML}</div>
+                </div>
+            `).join('')}
+            </div>
+        </body>
+        </html>
+    `);
+    showNotification("PDF exported successfully press ctrl+p to send to your printer!");
+    newWindow.document.close();
+
 }
 
-function extractAndExportMessageContent() {
-  const elements = document.querySelectorAll('[data-message-author-role]');
-  const messages = [];
-  const softwarename = "ChatGPT Organizer";
-  const title = "Conversation generated by ChatGPT Organizer";
-  const href = window.location.href;
-
-  elements.forEach((element, index) => {
-    const role = element.getAttribute('data-message-author-role');
-    const messageId = element.getAttribute('data-message-id') || `unknown-${index}`;
-    const modelSlug = role === 'assistant' ? (element.getAttribute('data-message-model-slug') || 'unknown-model') : null;
-    const contentHTML = element.innerHTML;
-
-    messages.push({
-      id: messageId,
-      role: role,
-      modelSlug: modelSlug,
-      contentHTML: contentHTML,
-      index: index
-    });
-  });
-
-  const newWindow = window.open('', '_blank', 'width=800,height=600');
-  
-  newWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Conversation generated by ${softwarename}</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
-            background: #f5f6f5;
-            color: #333;
-            line-height: 1.6;
-          }
-          .container {
-            max-width: 700px;
-            margin: 40px auto;
-            padding: 0 20px;
-          }
-          .header {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 30px;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #2c3e50;
-          }
-          .header p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #555;
-          }
-          .message {
-            margin-bottom: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease;
-          }
-          .message:hover {
-            transform: translateY(-2px);
-          }
-          .role-user .content {
-            background: #ffffff;
-          }
-          .role-assistant .content {
-            background: #f8f9ff;
-          }
-          .role {
-            font-weight: 600;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          .content {
-            padding: 10px;
-            border-radius: 4px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            max-width: 100%;
-          }
-          .model-slug {
-            color: #888;
-            font-size: 12px;
-            margin-left: 8px;
-            font-weight: normal;
-          }
-          /* Dark theme for code blocks */
-          pre, code {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 13px;
-            overflow-x: auto;
-            max-width: 100%;
-            display: block;
-          }
-          pre {
-            padding: 12px;
-            margin: 8px 0;
-          }
-          code {
-            padding: 2px 6px;
-            display: inline-block;
-          }
-          /* Beautiful table styling */
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            background: #ffffff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-radius: 6px;
-            overflow: hidden;
-          }
-          th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-          }
-          th {
-            background: #2c3e50;
-            color: #ffffff;
-            font-weight: 600;
-          }
-          tr:nth-child(even) {
-            background: #f9fafb;
-          }
-          tr:hover {
-            background: #f1f5f9;
-          }
-          td {
-            vertical-align: top;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Conversation generated by ${softwarename}</h1>
-            <p>PDF exported by ${softwarename} on ${new Date().toLocaleString()}.</p>
-            <p>Title: ${title}</p>
-            <p>URL: ${href}</p>
-          </div>
-          ${messages.map(msg => `
-            <div class="message role-${msg.role}">
-              <div class="role">
-                ${msg.role}
-                ${msg.modelSlug ? `<span class="model-slug">(${msg.modelSlug})</span>` : ''}
-              </div>
-              <div class="content">${msg.contentHTML}</div>
-            </div>
-          `).join('')}
-        </div>
-      </body>
-    </html>
-  `);
-  
-  newWindow.document.close();
-
-  // Show your specific notification
-  showNotification(newWindow, "PDF exported successfully!");
-
-  console.log('[extractAndExportMessageContent] messages:', messages);
-}
-
-// Notification function
-function extractAndExportMessageContent() {
-  const elements = document.querySelectorAll('[data-message-author-role]');
-  const messages = [];
-  const softwarename = "ChatGPT Organizer";
-  const title = "Conversation generated by ChatGPT Organizer";
-  const href = window.location.href;
-
-  elements.forEach((element, index) => {
-    const role = element.getAttribute('data-message-author-role');
-    const messageId = element.getAttribute('data-message-id') || `unknown-${index}`;
-    const modelSlug = role === 'assistant' ? (element.getAttribute('data-message-model-slug') || 'unknown-model') : null;
-    const contentHTML = element.innerHTML;
-
-    messages.push({
-      id: messageId,
-      role: role,
-      modelSlug: modelSlug,
-      contentHTML: contentHTML,
-      index: index
-    });
-  });
-
-  const newWindow = window.open('', '_blank', 'width=800,height=600');
-  
-  newWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Conversation generated by ${softwarename}</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
-            background: #f5f6f5;
-            color: #333;
-            line-height: 1.6;
-          }
-          .container {
-            max-width: 700px;
-            margin: 40px auto;
-            padding: 0 20px;
-          }
-          .header {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 30px;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            color: #2c3e50;
-          }
-          .header p {
-            margin: 5px 0;
-            font-size: 14px;
-            color: #555;
-          }
-          .message {
-            margin-bottom: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: transform 0.2s ease;
-          }
-          .message:hover {
-            transform: translateY(-2px);
-          }
-          .role-user .content {
-            background: #ffffff;
-          }
-          .role-assistant .content {
-            background: #f8f9ff;
-          }
-          .role {
-            font-weight: 600;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-          .content {
-            padding: 10px;
-            border-radius: 4px;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            max-width: 100%;
-          }
-          .model-slug {
-            color: #888;
-            font-size: 12px;
-            margin-left: 8px;
-            font-weight: normal;
-          }
-          pre, code {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 13px;
-            overflow-x: auto;
-            max-width: 100%;
-            display: block;
-          }
-          pre {
-            padding: 12px;
-            margin: 8px 0;
-          }
-          code {
-            padding: 2px 6px;
-            display: inline-block;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 10px 0;
-            background: #ffffff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-radius: 6px;
-            overflow: hidden;
-          }
-          th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-          }
-          th {
-            background: #2c3e50;
-            color: #ffffff;
-            font-weight: 600;
-          }
-          tr:nth-child(even) {
-            background: #f9fafb;
-          }
-          tr:hover {
-            background: #f1f5f9;
-          }
-          td {
-            vertical-align: top;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Conversation generated by ${softwarename}</h1>
-            <p>PDF exported by ${softwarename} on ${new Date().toLocaleString()}.</p>
-            <p>Title: ${title}</p>
-            <p>URL: ${href}</p>
-          </div>
-          ${messages.map(msg => `
-            <div class="message role-${msg.role}">
-              <div class="role">
-                ${msg.role}
-                ${msg.modelSlug ? `<span class="model-slug">(${msg.modelSlug})</span>` : ''}
-              </div>
-              <div class="content">${msg.contentHTML}</div>
-            </div>
-          `).join('')}
-        </div>
-      </body>
-    </html>
-  `);
-  
-  newWindow.document.close();
-
-  // Show notification in the current window
-  showNotification("PDF exported successfully press ctrl+p to send to your printer!");
-
-  console.log('[extractAndExportMessageContent] messages:', messages);
-}
-
-// Updated notification function for current window with slide-in from bottom-right
 function showNotification(message, duration = 5000) {
-  const notification = document.createElement('div');
-  notification.innerHTML = message;
-  notification.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 10px 20px;
-    background: rgba(46, 204, 113, 0.9); /* Soft green for success */
-    color: #ffffff;
-    border-radius: 6px;
-    font-size: 14px;
-    z-index: 1000;
-    transform: translateY(100px); /* Start below the viewport */
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-  `;
-  
-  document.body.appendChild(notification);
-  
-  // Slide in and fade in
-  setTimeout(() => {
-    notification.style.transform = 'translateY(0)';
-    notification.style.opacity = '1';
-  }, 100);
-
-  // Slide out and fade out after duration
-  setTimeout(() => {
-    notification.style.transform = 'translateY(100px)';
-    notification.style.opacity = '0';
+    const notification = document.createElement('div');
+    notification.innerHTML = message;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        background: rgba(46, 204, 113, 0.9); /* Soft green for success */
+        color: #ffffff;
+        border-radius: 6px;
+        font-size: 14px;
+        z-index: 1000;
+        transform: translateY(100px); /* Start below the viewport */
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Slide in and fade in
     setTimeout(() => {
-      notification.remove();
-    }, 300); // Match transition duration
-  }, duration);
+        notification.style.transform = 'translateY(0)';
+        notification.style.opacity = '1';
+    }, 100);
+
+    // Slide out and fade out after duration
+    setTimeout(() => {
+        notification.style.transform = 'translateY(100px)';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+        notification.remove();
+        }, 300); // Match transition duration
+    }, duration);
 }
 
+
+// Start observing the document for changes
+domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree: true });
+// Start observing the document for changes
+dommenubuttoncreator.observe(document.documentElement, { childList: true, subtree: true });
 

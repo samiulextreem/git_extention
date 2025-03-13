@@ -7,15 +7,14 @@ clearExtentionstorage();
 // Listen for messages from content.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "openpopup") {
-        // chrome.windows.create({ url: "https://youtube.com" });
         createPopupWindow();
     }
 
     if (request.action === "updateTasksToDoAfterLogin") {
+        
         let email = request.data;
-        console.log('will update everything after login ');
-        updateContentAndCreateButton();
-        updateUserFunctionality(email);
+        chrome.runtime.sendMessage({ action: "updatenotification", data: email });
+        console.log('welcome back, ', email);
     }
 });
 
@@ -45,44 +44,6 @@ function clearExtentionstorage() {
 }
 
 
-function updateContentAndCreateButton() {
-    chrome.tabs.query({}, (tabs) => {
-        if (tabs && tabs.length > 0) {
-            console.log("Checking tabs for matches...");
-            tabs.forEach((tab, index) => {
-                const tabUrl = tab.url || "No URL (e.g., chrome:// page)";
-                console.log(`Tab ID: ${tab.id}, URL: ${tabUrl}`);
-
-                if (tabUrl.includes("chatgpt.com")) {
-                    //only update the log in button with user name
-                    chrome.tabs.sendMessage(tab.id, { action: "pullDataFromChromeStorage" });
-                }
-            });
-        } else {
-            console.log("No tabs found.");
-        }
-    });
-}
-
-
-function updateUserFunctionality(email) {
-    chrome.tabs.query({}, (tabs) => {
-        if (tabs && tabs.length > 0) {
-            console.log("Checking tabs for matches...");
-            tabs.forEach((tab, index) => {
-                const tabUrl = tab.url || "No URL (e.g., chrome:// page)";
-                // console.log(`Tab ID: ${tab.id}, URL: ${tabUrl}`);
-
-                if (tabUrl.includes("chatgpt.com")) {
-                    //only update the log in button with user name
-                    chrome.tabs.sendMessage(tab.id, { action: "updateChatHistoryToFirebaseServer", data: email });
-                }
-            });
-        } else {
-            console.log("No tabs found.");
-        }
-    });
-}
 
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -96,24 +57,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "capture") {
-        console.log("Received capture request from content script");
-        chrome.tabs.captureVisibleTab(null, { format: "png" }, (dataUrl) => {
-            if (chrome.runtime.lastError) {
-                console.error("Capture error:", chrome.runtime.lastError.message);
-                sendResponse({ error: chrome.runtime.lastError.message });
-            } else if (!dataUrl) {
-                console.error("Capture failed: No image data returned");
-                sendResponse({ error: "No image data" });
-            } else {
-                console.log("Capture successful, sending data URL");
-                sendResponse({ dataUrl: dataUrl });
-            }
-        });
-        return true; // Keep the message port open
-    }
-});
 
 
 
@@ -127,3 +70,23 @@ chrome.runtime.onInstalled.addListener((details) => {
         });
     }
 });
+
+
+function updateUserFunctionality(data,updatenotification) {
+    chrome.tabs.query({}, (tabs) => {
+        if (tabs && tabs.length > 0) {
+            console.log("Checking tabs for matches...");
+            tabs.forEach((tab, index) => {
+                const tabUrl = tab.url || "No URL (e.g., chrome:// page)";
+                // console.log(`Tab ID: ${tab.id}, URL: ${tabUrl}`);
+
+                if (tabUrl.includes("chatgpt.com")) {
+                    //only update the log in button with user name
+                    chrome.tabs.sendMessage(tab.id, { action: "${updatenotification}", data: data });
+                }
+            });
+        } else {
+            console.log("No tabs found.");
+        }
+    });
+}
