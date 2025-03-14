@@ -13,7 +13,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "updateTasksToDoAfterLogin") {
         
         let email = request.data;
-        chrome.runtime.sendMessage({ action: "updatenotification", data: email });
+        updateUserFunctionality(email);
         console.log('welcome back, ', email);
     }
 });
@@ -72,7 +72,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 
-function updateUserFunctionality(data,updatenotification) {
+function updateUserFunctionality(data) {
     chrome.tabs.query({}, (tabs) => {
         if (tabs && tabs.length > 0) {
             console.log("Checking tabs for matches...");
@@ -82,7 +82,7 @@ function updateUserFunctionality(data,updatenotification) {
 
                 if (tabUrl.includes("chatgpt.com")) {
                     //only update the log in button with user name
-                    chrome.tabs.sendMessage(tab.id, { action: "${updatenotification}", data: data });
+                    chrome.tabs.sendMessage(tab.id, { action: "updateloginevent", data: data });
                 }
             });
         } else {

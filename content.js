@@ -11,24 +11,8 @@ let currentChat = {
 };
 let isSearchVisible = true;
 let overlayActvated = false;
-const isLoggedIn = true;
+let isLoggedIn = false;
 
-// // content.js
-// document.addEventListener("DOMContentLoaded", () => {
-//     // Check for a logout button or other login indicator (adjust selector based on chatgpt.com)
-
-//     // Print to console
-//     if (isLoggedIn) {
-//         console.log("User is logged in to chatgpt.com");
-//     } else {
-//         console.log("User is not logged in to chatgpt.com");
-//     }
-
-//     // Store login status in chrome.storage.local
-//     chrome.storage.local.set({ "isLoggedIn": isLoggedIn }, () => {
-//         console.log("Login status saved to local storage: ", isLoggedIn);
-//     });
-// });
 
 
 manageConversationButtonsAndTitles();
@@ -36,14 +20,16 @@ pdfmaker();
 
 
 function loginchecker(){
-    chrome.storage.sync.get("email", (result) => {
-        if (result.email) {
-            console.log("Email found in sync storage: ", result.email);
-            isLoggedIn = true;
-        } else {
-            console.log("No email field exists in chrome.storage.sync");
-            isLoggedIn = false;
-        }
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(null, (result) => {
+            if (result.useremail) {
+                console.log("Email found in sync storage: ", result.useremail);
+                resolve(true);
+            } else {
+                console.log("No email field exists in chrome.storage.sync");
+                resolve(false);
+            }
+        });
     });
 }
 
@@ -674,9 +660,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         pullDataFromChromeStorage();
     }
 
-    if (request.action === "updatenotification") {
-        console.log('updatenotification', request.data);
+    if (request.action === "updateloginevent") {
+        console.log('updateloginevent', request.data);
         showNotification('welcome back '+request.data);
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+        // Update login state and refresh UI
+
     }
 });
 
@@ -1204,12 +1195,12 @@ function createMenuButton() {
 
     // Toggle overlay on button click
     menubutton.addEventListener("click", async function () {
-        console.log(`menu button is clicked`);
+        // console.log(`menu button is clicked`);
         
         // Close folder choice overlay if it's open
         const folderchoiceoverlay = document.getElementById("folderchoice-container");
         if (folderchoiceoverlay && folderchoiceoverlay.style.display === "flex") {
-            console.log("Menu button clicked - closing folder choice overlay");
+            // console.log("Menu button clicked - closing folder choice overlay");
             folderchoiceoverlay.style.display = "none";
             overlayActvated = false;
             return; // Exit early to prevent menu overlay toggle
@@ -1222,7 +1213,7 @@ function createMenuButton() {
         if (currentRight >= 0 || menuoverlay.style.right === "0px" || menuoverlay.style.right === "0") {
             // Ensure consistent units and handle edge cases
             menuoverlay.style.right = "-300px"; // Slide out
-            console.log(`[menubutton] sliding out of screen`);
+            // console.log(`[menubutton] sliding out of screen`);
         } else {
             // Force overlay to be visible first
             menuoverlay.style.display = "block";
@@ -1238,7 +1229,7 @@ function createMenuButton() {
             // Small delay to ensure display change is processed
             setTimeout(() => {
                 menuoverlay.style.right = "0px"; // Slide in with explicit units
-                console.log(`[menubutton] sliding into screen`);
+                // console.log(`[menubutton] sliding into screen`);
             }, 10);
         }
     });
@@ -1380,9 +1371,38 @@ const dommenubuttoncreator = new MutationObserver((mutations) => {
     if (document.body) {
         console.log("DOM ready, adding button and overlay");
         dommenubuttoncreator.disconnect(); // Stop observing once body is found
-        loginchecker();
-        // Call the function to create menu button and overlay
-        const menuElements = createMenuButton();
+        
+        // Use the Promise-based loginchecker and handle the result properly
+        loginchecker().then(isLoggedInResult => {
+            isLoggedIn = isLoggedInResult;
+            if (isLoggedIn == true){
+                // Call the function to create menu button and overlay
+                const menuElements = createMenuButton();
+            }
+            else{
+                console.log("User is not logged in, not creating menu button and overlay");
+                
+                // Create a login button with the same style as menubutton
+                const loginButton = document.createElement("button");
+                loginButton.innerHTML = `
+                    <span class="menu-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </span>
+                `;
+                loginButton.className = "menubutton";
+                loginButton.title = "Login to access folders";
+                
+                // Add click event to open login popup
+                loginButton.addEventListener("click", () => {
+                    chrome.runtime.sendMessage({ action: "openpopup" });
+                });
+                
+                document.body.appendChild(loginButton);
+            }
+        });
     }
 });
 
