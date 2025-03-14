@@ -18,7 +18,7 @@
   ],
   "web_accessible_resources": [
     {
-        "resources": ["welcome.html"],
+        "resources": ["welcome.html","checkout.html","success.html","cancle.html"],
         "matches": ["<all_urls>"]
     }
   ],
@@ -30,6 +30,7 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }
+
 
 
 }

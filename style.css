@@ -247,7 +247,7 @@
 .overlay-close-btn:hover {
     color: rgba(255, 255, 255, 0.9);
     background-color: rgba(255, 255, 255, 0.1);
-    transform: rotate(90deg);
+    transform: rotate(45deg);
 }
 
 /* Create Folder Container Styles */
@@ -491,13 +491,13 @@ canvas {
 /* Styles for the add folder button */
 .add-folder-button {
     position: absolute;
-    top: 150px; /* Moved down to approximately 3cm from top */
-    left: 60px;
+    top: 150px; /* Moved lower from 70px to 150px */
+    left: 188px; /* 132px (money button left) + 36px (money button width) + 20px (spacing) */
     width: 36px;
     height: 36px;
-    background-color: rgba(40, 167, 69, 0.1); /* Slight green tint */
+    background-color: rgba(220, 53, 69, 0.1); /* Changed from green to red tint */
     color: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(40, 167, 69, 0.5);
+    border: 2px solid rgba(220, 53, 69, 0.5); /* Changed from green to red border */
     border-radius: 8px; /* Slightly rounded corners */
     cursor: pointer;
     z-index: 10002;
@@ -508,8 +508,8 @@ canvas {
 }
 
 .add-folder-button:hover {
-    background-color: rgba(40, 167, 69, 0.2);
-    border-color: rgba(40, 167, 69, 0.8);
+    background-color: rgba(220, 53, 69, 0.2); /* Changed from green to red hover background */
+    border-color: rgba(220, 53, 69, 0.8); /* Changed from green to red hover border */
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -519,7 +519,7 @@ canvas {
 }
 
 .add-folder-button:hover svg {
-    transform: rotate(90deg);
+    transform: rotate(45deg);
 }
 
 @keyframes folderPulse {
@@ -653,7 +653,7 @@ canvas {
 .options-icon:hover {
     color: rgba(255, 255, 255, 1);
     background-color: rgba(255, 255, 255, 0.1);
-    transform: rotate(90deg);
+    transform: rotate(45deg);
 }
 
 /* Updated options menu styles */
@@ -841,8 +841,8 @@ canvas {
 /* Styles for the login button in overlay - matching add folder button */
 .login-folder-button {
     position: absolute;
-    top: 150px; /* Moved down to approximately 3cm from top */
-    left: 15px;
+    top: 150px; /* Moved lower from 70px to 150px */
+    left: 20px; /* Left margin */
     width: 36px;
     height: 36px;
     background-color: rgba(33, 150, 243, 0.1); /* Slight blue tint */
@@ -869,7 +869,7 @@ canvas {
 }
 
 .login-folder-button:hover svg {
-    transform: rotate(360deg);
+    transform: rotate(45deg); /* Reduced from 360deg to 45deg for more subtle rotation */
 }
 
 .login-folder-button.logged-in {
@@ -882,10 +882,80 @@ canvas {
     border-color: rgba(76, 175, 80, 0.8);
 }
 
+/* Settings button styles */
+.settings-button {
+    position: absolute;
+    top: 150px; /* Moved lower from 70px to 150px */
+    left: 76px; /* 20px (left margin) + 36px (login button width) + 20px (spacing) */
+    width: 36px;
+    height: 36px;
+    background-color: rgba(156, 39, 176, 0.1); /* Slight purple tint */
+    color: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(156, 39, 176, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.settings-button:hover {
+    background-color: rgba(156, 39, 176, 0.2);
+    border-color: rgba(156, 39, 176, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.settings-button svg {
+    transition: transform 0.3s ease;
+}
+
+.settings-button:hover svg {
+    transform: rotate(45deg);
+}
+
+/* Money button styles */
+.money-button {
+    position: absolute;
+    top: 150px; /* Moved lower from 70px to 150px */
+    left: 132px; /* 76px (settings button left) + 36px (settings button width) + 20px (spacing) */
+    width: 36px;
+    height: 36px;
+    background-color: rgba(76, 175, 80, 0.1); /* Slight green tint */
+    color: rgba(255, 255, 255, 0.9);
+    border: 2px solid rgba(76, 175, 80, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.money-button:hover {
+    background-color: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.money-button svg {
+    transition: transform 0.3s ease;
+}
+
+.money-button:hover svg {
+    transform: rotate(45deg) scale(1.1); /* Added rotation and kept the scale effect */
+}
+
 /* Add tooltip styles */
 .add-folder-button::after,
-.login-folder-button::after {
-    content: attr(data-tooltip);
+.login-folder-button::after,
+.settings-button::after,
+.money-button::after {
+    content: attr(title);
     position: absolute;
     bottom: -30px;
     left: 50%;
@@ -899,10 +969,13 @@ canvas {
     opacity: 0;
     visibility: hidden;
     transition: all 0.2s ease;
+    pointer-events: none;
 }
 
 .add-folder-button:hover::after,
-.login-folder-button:hover::after {
+.login-folder-button:hover::after,
+.settings-button:hover::after,
+.money-button:hover::after {
     opacity: 1;
     visibility: visible;
 }

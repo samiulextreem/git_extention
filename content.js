@@ -738,12 +738,76 @@ function createMenuButton() {
     menuoverlay.className = "overlay-container";
     document.body.appendChild(menuoverlay);
 
+    // Add styles for the coming soon message
+    const style = document.createElement('style');
+    style.textContent = `
+        .folder-container-message {
+            padding: 20px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 150px; /* Increased from 100px to 150px */
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .coming-soon-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px; /* Reduced from 16px */
+            padding: 20px; /* Reduced from 24px */
+            background: rgba(255, 255, 255, 0.03); /* More subtle background */
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08); /* More subtle border */
+            max-width: 85%; /* Slightly reduced from 90% */
+            margin: 0 auto;
+            backdrop-filter: blur(8px); /* Add blur effect for premium look */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        
+        .coming-soon-message svg {
+            color: rgba(255, 255, 255, 0.5); /* More subtle icon */
+            width: 40px; /* Reduced from 48px */
+            height: 40px; /* Reduced from 48px */
+        }
+        
+        .coming-soon-message h3 {
+            margin: 0;
+            font-size: 16px; /* Reduced from 18px */
+            font-weight: 500; /* Reduced from 600 */
+            color: rgba(255, 255, 255, 0.85);
+            letter-spacing: 0.3px; /* Added letter spacing */
+            text-transform: uppercase; /* Make it uppercase */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* Premium font stack */
+        }
+        
+        .coming-soon-message p {
+            margin: 0;
+            font-size: 13px; /* Reduced from 14px */
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.4; /* Reduced from 1.5 */
+            letter-spacing: 0.2px; /* Added letter spacing */
+            font-weight: 400;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* Premium font stack */
+        }
+    `;
+    document.head.appendChild(style);
+
     // Create draggable handle
     const handle = document.createElement("div");
     handle.className = "overlay-handle";
     menuoverlay.appendChild(handle);
 
-    // Create login button and add it to the overlay
+    // Create a button container for all buttons
+    const buttonContainer = document.createElement("div");
+    buttonContainer.className = "button-container";
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.flexDirection = "row";
+    buttonContainer.style.gap = "10px";
+    buttonContainer.style.marginBottom = "15px";
+    menuoverlay.appendChild(buttonContainer);
+
+    // Create login button and add it to the button container
     const loginButton = document.createElement("button");
     loginButton.className = "login-folder-button";
     loginButton.innerHTML = `
@@ -753,27 +817,84 @@ function createMenuButton() {
         </svg>
     `;
     loginButton.id = 'LOGINBUTTON';
+    loginButton.title = "Login";
     loginButton.addEventListener("click", () => {
         chrome.runtime.sendMessage({ action: "openpopup" });
     });
-    menuoverlay.appendChild(loginButton);
+    buttonContainer.appendChild(loginButton);
 
-    // Create button to add new folder
+    // Create settings button
+    const settingsButton = document.createElement("button");
+    settingsButton.className = "settings-button";
+    settingsButton.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    `;
+    settingsButton.id = 'SETTINGSBUTTON';
+    settingsButton.title = "Settings";
+    settingsButton.addEventListener("click", () => {
+        console.log("Settings button clicked");
+    });
+    buttonContainer.appendChild(settingsButton);
+
+    // Create money/payment button
+    const moneyButton = document.createElement("button");
+    moneyButton.className = "money-button";
+    moneyButton.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="6" x2="12" y2="12"></line>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            <path d="M9.5 9.5c0-1.1.9-2 2-2h1c1.1 0 2 .9 2 2v0c0 1.1-.9 2-2 2h-1c-1.1 0-2 .9-2 2v0c0 1.1.9 2 2 2h1c1.1 0 2-.9 2-2"></path>
+        </svg>
+    `;
+    moneyButton.id = 'MONEYBUTTON';
+    moneyButton.title = "Payments";
+    moneyButton.addEventListener("click", () => {
+        // Open the checkout page in a new tab for testing
+        const checkoutUrl = chrome.runtime.getURL('checkout.html');
+        window.open(checkoutUrl, '_blank');
+    });
+    buttonContainer.appendChild(moneyButton);
+
+    // Create button to add new folder and add it to the button container
     const addFolderButton = document.createElement("button");
     addFolderButton.className = "add-folder-button";
     addFolderButton.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2v11z"/>
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             <line x1="12" y1="11" x2="12" y2="17"/>
             <line x1="9" y1="14" x2="15" y2="14"/>
         </svg>
     `;
-    menuoverlay.appendChild(addFolderButton);
+    buttonContainer.appendChild(addFolderButton);
 
     // Create folder container
     const folderContainer = document.createElement("div");
     folderContainer.className = "folder-container";
-    menuoverlay.appendChild(folderContainer);
+
+    // Check if we're on chatgpt.com
+    if (!window.location.href.includes("chatgpt.com")) {
+        // Create a message container for non-chatgpt sites
+        const messageContainer = document.createElement("div");
+        messageContainer.className = "folder-container-message";
+        messageContainer.innerHTML = `
+            <div class="coming-soon-message">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v20M2 12h20"/>
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                <h3>Foldering conversations only available for ChatGPT</h3>
+                <p>Coming soon for Anthropic, Grok, and many more!</p>
+            </div>
+        `;
+        menuoverlay.appendChild(messageContainer);
+    } else {
+        // Add the regular folder container for chatgpt.com
+        menuoverlay.appendChild(folderContainer);
+    }
 
     // Function to render folders
     async function renderFolders() {
@@ -1808,6 +1929,11 @@ function applyCheckboxItemColor(checkboxItem, colorValue) {
 // Function to generate and download the PDF
 
 function pdfmaker() {
+    // Only create the button if we're on chatgpt.com
+    if (!window.location.href.includes("chatgpt.com")) {
+        return; // Exit early if not on chatgpt.com
+    }
+
     const button = document.createElement("button");
     button.id = "pdf-download-btn"; // Unique ID to avoid duplicates
     
