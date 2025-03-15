@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	async function checkAuthStatus(email) {
 		try {
-			const response = await fetch(`http://localhost:8080/api/get_auth_status?email=${encodeURIComponent(email)}`, {
+			const response = await fetch(`https://790a-2-40-40-33.ngrok-free.app/api/get_auth_status?email=${encodeURIComponent(email)}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json'
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	// Function to sync data with the server
 	async function pullDataFromFirebaseServer(email) {
 		try {
-			const response = await fetch(`http://localhost:8080/api/pull_data_from_firebase?email=${encodeURIComponent(email)}`, {
+			const response = await fetch(`https://790a-2-40-40-33.ngrok-free.app/api/pull_data_from_firebase?email=${encodeURIComponent(email)}`, {
 				method: 'GET',
 				headers: {
 					'Content-Type': 'application/json'
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	function requestMagicLinkForEmail(mail) {
-		fetch('http://localhost:8080/api/request_magic_link', {
+		fetch('https://790a-2-40-40-33.ngrok-free.app/api/request_magic_link', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ inputemail: mail })

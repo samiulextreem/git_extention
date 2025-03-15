@@ -13,7 +13,7 @@ function verifyPayment(userEmail) {
     }
     
     console.log('Verifying payment for:', userEmail);
-    return fetch(`http://localhost:8080/verify-payment?email=${userEmail}`)
+    return fetch(`https://790a-2-40-40-33.ngrok-free.app/verify-payment?email=${userEmail}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -717,7 +717,7 @@ async function pullDataFromChromeStorage() {
 
 async function checkAuthStatus(email) {
     try {
-        const response = await fetch(`http://localhost:8080/api/get_auth_status?email=${encodeURIComponent(email)}`, {
+        const response = await fetch(`https://790a-2-40-40-33.ngrok-free.app/api/get_auth_status?email=${encodeURIComponent(email)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -2595,7 +2595,7 @@ function showProductSelectionOverlay() {
                 // Redirect after animation completes
                 setTimeout(() => {
                     // Make a fetch POST request to get the Stripe checkout URL
-                    fetch('http://localhost:8080/create-checkout-session-monthly', {
+                    fetch('https://790a-2-40-40-33.ngrok-free.app/create-checkout-session-monthly', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2636,7 +2636,7 @@ function showProductSelectionOverlay() {
                 // Redirect after animation completes
                 setTimeout(() => {
                     // Make a fetch POST request to get the Stripe checkout URL
-                    fetch('http://localhost:8080/create-checkout-session-yearly', {
+                    fetch('https://790a-2-40-40-33.ngrok-free.app/create-checkout-session-yearly', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2677,7 +2677,7 @@ function showProductSelectionOverlay() {
                 // Redirect after animation completes
                 setTimeout(() => {
                     // Make a fetch POST request to get the Stripe checkout URL
-                    fetch('http://localhost:8080/create-checkout-session-lifetime', {
+                    fetch('https://790a-2-40-40-33.ngrok-free.app/create-checkout-session-lifetime', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
