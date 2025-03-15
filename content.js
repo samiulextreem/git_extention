@@ -3,7 +3,119 @@ console.log("Current URL from content.js:", window.location.href);
 if (!window.location.href.includes("chatgpt.com")){
     showButtonOnTextSelection();
 }
+
+let ispaiduser = false;
+// Helper function to verify payment with the backend
+function verifyPayment(userEmail) {
+    if (!userEmail) {
+        console.log('Cannot verify payment: userEmail is null or empty');
+        return Promise.reject('No email provided');
+    }
     
+    console.log('Verifying payment for:', userEmail);
+    return fetch(`http://localhost:8080/verify-payment?email=${userEmail}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Payment status checked:', data);
+            
+            // Handle the expected JSON structure with 'success' and 'product_info' fields
+            if (data && typeof data.success !== 'undefined') {
+                ispaiduser = data.success;
+                
+                // Log product info if available
+                if (data.product_info) {
+                    console.log('Product info:', data.product_info);
+                }
+                
+                // Update the premium status in local storage
+                chrome.storage.local.set({
+                    isPremium: ispaiduser,
+                    productInfo: data.product_info || {}
+                }, function() {
+                    console.log('Premium status saved to storage:', ispaiduser);
+                });
+                
+                // Update ad banner visibility
+                const adBanner = document.querySelector('.ad-banner-container');
+                if (adBanner) {
+                    if (ispaiduser) {
+                        adBanner.style.display = 'none';
+                        console.log('User is premium, hiding ads');
+                    } else {
+                        adBanner.style.display = 'flex';
+                        console.log('User is not premium, showing ads');
+                    }
+                }
+            } else {
+                console.warn('Unexpected response format:', data);
+                ispaiduser = false;
+            }
+            
+            return data;
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+            return {success: false, product_info: null}; // Return default value on error
+        });
+}
+
+// Properly fetch and store the user email
+let userEmail = null; // Initialize as null
+
+// Fetch user email from sync storage
+chrome.storage.sync.get('useremail', function(result) {
+    if (result.useremail) {
+        userEmail = result.useremail;
+        console.log("User email loaded:", userEmail);
+        // Update login status
+        isLoggedIn = true;
+        
+        // Now that we have the email, verify payment
+        verifyPayment(userEmail).then(data => {
+            console.log('Payment verification completed');
+        });
+    } else {
+        console.log("No user email found in storage");
+        isLoggedIn = false;
+    }
+});
+
+// Remove this line as it's now called inside the chrome.storage.sync.get callback
+// verifyPayment(userEmail);
+
+// Listen for changes to the premium status
+chrome.storage.onChanged.addListener(function(changes, namespace) {
+    if (namespace === 'local') {
+        // Handle premium status changes
+        if (changes.isPremium) {
+            const isPremium = changes.isPremium.newValue;
+            ispaiduser = isPremium; // Update the ispaiduser variable
+            console.log('Premium status changed:', isPremium);
+            
+            // Update ad banner visibility
+            const adBanner = document.querySelector('.ad-banner-container');
+            if (adBanner) {
+                if (isPremium) {
+                    adBanner.style.display = 'none';
+                    console.log('User became premium, hiding ad banner');
+                } else {
+                    adBanner.style.display = 'flex';
+                    console.log('User is no longer premium, showing ad banner');
+                }
+            }
+        }
+        
+        // Handle product info changes
+        if (changes.productInfo) {
+            console.log('Product info updated:', changes.productInfo.newValue);
+        }
+    }
+});
 
 let currentChat = {
     title: "", // Default empty string
@@ -738,6 +850,64 @@ function createMenuButton() {
     menuoverlay.className = "overlay-container";
     document.body.appendChild(menuoverlay);
 
+    // Add banner ad container at the bottom of the overlay
+    const adBannerContainer = document.createElement("div");
+    adBannerContainer.className = "ad-banner-container";
+    adBannerContainer.style.cssText = `
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 90px;
+        background-color: rgba(30, 32, 35, 0.9);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        box-sizing: border-box;
+        z-index: 10003;
+    `;
+    
+    // Add placeholder content for the ad
+    adBannerContainer.innerHTML = `
+        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, rgba(66, 153, 225, 0.2), rgba(99, 102, 241, 0.2)); 
+                    border-radius: 8px; display: flex; align-items: center; justify-content: center; 
+                    border: 1px dashed rgba(255, 255, 255, 0.3);">
+            <span style="color: rgba(255, 255, 255, 0.7); font-size: 14px; text-align: center;">
+                Advertisement Banner
+            </span>
+        </div>
+    `;
+    
+    // First check the ispaiduser variable (which might be set already)
+    if (ispaiduser) {
+        adBannerContainer.style.display = 'none';
+        console.log('User is premium (from variable), hiding ad banner on initialization');
+    } else {
+        // If not set, check storage as a fallback
+        chrome.storage.local.get(['isPremium', 'productInfo'], function(result) {
+            if (result.isPremium) {
+                // User is premium, hide the ad banner
+                adBannerContainer.style.display = 'none';
+                ispaiduser = true; // Update the variable to match storage
+                
+                // Log product info if available
+                if (result.productInfo) {
+                    console.log('Product info from storage:', result.productInfo);
+                }
+                
+                console.log('User is premium (from storage), hiding ad banner on initialization');
+            } else {
+                // User is not premium, show the ad banner
+                adBannerContainer.style.display = 'flex';
+                console.log('User is not premium, showing ad banner on initialization');
+            }
+        });
+    }
+    
+    menuoverlay.appendChild(adBannerContainer);
+
     // Add styles for the coming soon message
     const style = document.createElement('style');
     style.textContent = `
@@ -853,9 +1023,17 @@ function createMenuButton() {
     moneyButton.id = 'MONEYBUTTON';
     moneyButton.title = "Payments";
     moneyButton.addEventListener("click", () => {
-        // Open the checkout page in a new tab for testing
-        const checkoutUrl = chrome.runtime.getURL('checkout.html');
-        window.open(checkoutUrl, '_blank');
+        // Check if user is logged in before showing product selection
+        loginchecker().then(isLoggedIn => {
+            if (isLoggedIn) {
+                // User is logged in, show product selection overlay
+                showProductSelectionOverlay();
+            } else {
+                // User is not logged in, show login popup
+                showNotification("Please log in to access premium features");
+                chrome.runtime.sendMessage({ action: "openpopup" });
+            }
+        });
     });
     buttonContainer.appendChild(moneyButton);
 
@@ -943,7 +1121,7 @@ function createMenuButton() {
                     toggleFolder(folderDiv, folderHeader);
                 }
             });
-            
+  
             // Add folder icon
             const folderIcon = document.createElement("span");
             folderIcon.className = "folder-icon";
@@ -1115,7 +1293,7 @@ function createMenuButton() {
             });
 
             optionsMenu.appendChild(renameOption);
-                optionsMenu.appendChild(colorOption);
+            optionsMenu.appendChild(colorOption);
             optionsMenu.appendChild(deleteOption);
             folderDiv.appendChild(optionsMenu);
 
@@ -1126,7 +1304,7 @@ function createMenuButton() {
                 // console.log('[renderFolders] folder', folder);
                 if (folder.Chats && folder.Chats.length > 0) {
                     folder.Chats.forEach(item => {
-                        console.log(`[renderFolders] ${folder.Folder_Name} item`, item);
+                        // console.log(`[renderFolders] ${folder.Folder_Name} item`, item);
                 const listItem = document.createElement("li");
                 
                 const itemIcon = document.createElement("span");
@@ -1174,7 +1352,7 @@ function createMenuButton() {
                     applyFolderColor(folderDiv, folder.color);
                     
                     // Log color application for debugging
-                    console.log(`[renderFolders] Applied color ${folder.color} to folder "${folder.Folder_Name}"`);
+                    //console.log(`[renderFolders] Applied color ${folder.color} to folder "${folder.Folder_Name}"`);
                 }
             });
         } catch (error) {
@@ -2169,3 +2347,412 @@ domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree
 // Start observing the document for changes
 dommenubuttoncreator.observe(document.documentElement, { childList: true, subtree: true });
 
+// Add this function to show the product selection overlay
+function showProductSelectionOverlay() {
+    // Check if overlay already exists
+    const existingOverlay = document.getElementById('product-selection-overlay');
+    if (existingOverlay) {
+        // Make sure it's visible and reset its state
+        existingOverlay.style.display = 'flex';
+        
+        // Reset the content transform
+        const content = existingOverlay.querySelector('.product-selection-content');
+        if (content) {
+            content.style.transform = 'translateY(0)';
+        }
+        
+        // Fade it in
+        setTimeout(() => {
+            existingOverlay.style.opacity = '1';
+        }, 10);
+        
+        return;
+    }
+
+    // Create overlay container
+    const overlay = document.createElement('div');
+    overlay.id = 'product-selection-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+
+    // Create content container
+    const content = document.createElement('div');
+    content.className = 'product-selection-content';
+    content.style.cssText = `
+        background-color: #111827;
+        border-radius: 1rem;
+        width: 72%;
+        max-width: 960px;
+        max-height: 90vh;
+        padding: 2rem;
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+        position: relative;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: visible; /* Change from auto to visible to prevent scrolling */
+    `;
+
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'product-overlay-close';
+    closeButton.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    `;
+    closeButton.style.cssText = `
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        z-index: 10;
+        transition: background-color 0.2s ease;
+    `;
+    closeButton.addEventListener('mouseover', () => {
+        closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+    });
+    closeButton.addEventListener('mouseout', () => {
+        closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+    });
+    closeButton.addEventListener('click', () => {
+        overlay.style.opacity = '0';
+        content.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            // Instead of just hiding it, remove it from the DOM completely
+            overlay.remove();
+        }, 300);
+    });
+    content.appendChild(closeButton);
+
+    // Create product selection content directly
+    const productSelectionHTML = `
+        <div class="container" style="max-width: 960px; width: 100%;">
+            <div class="header" style="text-align: center; margin-bottom: 1.6rem;">
+                <h1 style="font-size: 1.8rem; font-weight: 700; margin-bottom: 0.6rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Choose Your Plan</h1>
+                <p style="font-size: 0.85rem; color: #d1d5db; max-width: 480px; margin: 0 auto; line-height: 1.4;">Select the perfect plan to organize your AI conversations.</p>
+            </div>
+
+            <div class="pricing-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-top: 1rem;">
+                <div class="pricing-card" style="background-color: #1f2937; border-radius: 0.8rem; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="card-header" style="padding: 1.2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(10px);">
+                        <div class="plan-name" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3rem; color: #f9fafb;">Monthly</div>
+                        <div class="price" style="font-size: 2rem; font-weight: 700; margin-bottom: 0.4rem; color: #6366f1;">€1.99 <span style="font-size: 0.7rem; color: #d1d5db; font-weight: 400;">/month</span></div>
+                        <p style="color: #d1d5db; font-size: 0.8rem;">Billed monthly</p>
+                    </div>
+                    <div class="card-body" style="padding: 1.2rem 1.2rem 0.8rem;">
+                        <ul class="features" style="list-style: none; margin-bottom: 1.2rem; font-size: 0.85rem;">
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> Unlimited folders</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> 5 PDF exports per day</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> No ads</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> Basic folder colors</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;">
+                                <span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> 
+                                <span style="display: flex; align-items: center; flex-wrap: nowrap;">Coming for Grok <span style="display: inline-block; margin: 0 0.2rem; font-size: 1rem;">🤖</span> and Claude <span style="display: inline-block; margin: 0 0.2rem; font-size: 1rem;">🧠</span></span>
+                            </li>
+                        </ul>
+                        <button class="btn btn-outline" style="display: block; width: 100%; padding: 0.7rem; border-radius: 0.4rem; background-color: transparent; color: #6366f1; text-align: center; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; border: 2px solid #6366f1; outline: none; text-decoration: none; font-size: 0.9rem;">Get Started</button>
+                    </div>
+                </div>
+
+                <div class="pricing-card popular" style="background-color: #1f2937; border-radius: 0.8rem; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="position: absolute; top: 0.6rem; right: 0.6rem; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-size: 0.6rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 1rem; letter-spacing: 0.05em; z-index: 1;">SAVE 20%</div>
+                    <div class="card-header" style="padding: 1.2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(10px);">
+                        <div class="plan-name" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3rem; color: #f9fafb;">Annual</div>
+                        <div class="price" style="font-size: 2rem; font-weight: 700; margin-bottom: 0.4rem; color: #6366f1;">€18 <span style="font-size: 0.7rem; color: #d1d5db; font-weight: 400;">/year</span></div>
+                        <p style="color: #d1d5db; font-size: 0.8rem;">Billed annually</p>
+                    </div>
+                    <div class="card-body" style="padding: 1.2rem 1.2rem 0.8rem;">
+                        <ul class="features" style="list-style: none; margin-bottom: 1.2rem; font-size: 0.85rem;">
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> Unlimited folders</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> Unlimited PDF exports</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> No ads</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> 20% savings</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;">
+                                <span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> 
+                                <span style="display: flex; align-items: center; flex-wrap: nowrap;">Coming for Grok <span style="display: inline-block; margin: 0 0.2rem; font-size: 1rem;">🤖</span> and Claude <span style="display: inline-block; margin: 0 0.2rem; font-size: 1rem;">🧠</span></span>
+                            </li>
+                        </ul>
+                        <button class="btn" style="display: block; width: 100%; padding: 0.7rem; border-radius: 0.4rem; background-color: #6366f1; color: white; text-align: center; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; border: none; outline: none; text-decoration: none; font-size: 0.9rem;">Choose Annual</button>
+                    </div>
+                </div>
+
+                <div class="pricing-card" style="background-color: #1f2937; border-radius: 0.8rem; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1); transition: transform 0.3s ease, box-shadow 0.3s ease; position: relative; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div style="position: absolute; top: 0.6rem; right: 0.6rem; background: linear-gradient(135deg, #10b981, #059669); color: white; font-size: 0.6rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 1rem; letter-spacing: 0.05em; z-index: 1;">BEST VALUE</div>
+                    <div class="card-header" style="padding: 1.2rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(10px);">
+                        <div class="plan-name" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.3rem; color: #f9fafb;">Lifetime</div>
+                        <div class="price" style="font-size: 2rem; font-weight: 700; margin-bottom: 0.4rem; color: #10b981;">€50 <span style="font-size: 0.7rem; color: #d1d5db; font-weight: 400;">one-time</span></div>
+                        <p style="color: #d1d5db; font-size: 0.8rem;">Pay once, use forever</p>
+                    </div>
+                    <div class="card-body" style="padding: 1.2rem 1.2rem 0.8rem;">
+                        <ul class="features" style="list-style: none; margin-bottom: 1.2rem; font-size: 0.85rem;">
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> Unlimited folders</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> Unlimited PDF exports</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> No ads</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;"><span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> Lifetime access</li>
+                            <li style="margin-bottom: 0.6rem; display: flex; align-items: center; color: #d1d5db;">
+                                <span style="color: #10b981; font-weight: bold; margin-right: 0.5rem;">✓</span> 
+                                <span style="display: flex; align-items: center; flex-wrap: nowrap;">Coming for Grok <span style="display: inline-block; margin: 0 0.2rem; font-size: 1rem;">🤖</span> and Claude <span style="display: inline-block; margin: 0 0.2rem; font-size: 1rem;">🧠</span></span>
+                            </li>
+                        </ul>
+                        <button class="btn btn-outline" style="display: block; width: 100%; padding: 0.7rem; border-radius: 0.4rem; background-color: transparent; color: #10b981; text-align: center; font-weight: 600; cursor: pointer; transition: background-color 0.2s ease; border: 2px solid #10b981; outline: none; text-decoration: none; font-size: 0.9rem;">Get Lifetime</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="guarantee" style="text-align: center; margin-top: 1.2rem; color: #d1d5db; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: #d1d5db;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>30-day money-back guarantee</span>
+            </div>
+
+            <div class="team-info" style="text-align: center; margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); color: #9ca3af; font-size: 0.8rem; line-height: 1.4;">
+                <p>🇮🇹 Proudly made with love ❤️ in Rome, Italy</p>
+            </div>
+        </div>
+    `;
+
+    // Create a container for the content
+    const contentContainer = document.createElement('div');
+    contentContainer.innerHTML = productSelectionHTML;
+    content.appendChild(contentContainer);
+
+    // Add hover effects for pricing cards
+    const addHoverEffects = () => {
+        const cards = content.querySelectorAll('.pricing-card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-5px)';
+                card.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.2)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1)';
+            });
+        });
+
+        // Add hover effects for buttons
+        const buttons = content.querySelectorAll('.btn');
+        buttons.forEach(button => {
+            if (button.classList.contains('btn-outline')) {
+                button.addEventListener('mouseenter', () => {
+                    button.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.backgroundColor = 'transparent';
+                });
+            } else {
+                button.addEventListener('mouseenter', () => {
+                    button.style.backgroundColor = '#4f46e5';
+                });
+                button.addEventListener('mouseleave', () => {
+                    button.style.backgroundColor = '#6366f1';
+                });
+            }
+        });
+    };
+
+    // Add event listeners to buttons
+    const addButtonListeners = () => {
+        const buttons = document.querySelectorAll('.product-selection-content .btn');
+        
+        // Monthly plan button (first button)
+        if (buttons[0]) {
+            buttons[0].addEventListener('click', () => {
+                const planName = 'Monthly';
+                showNotification(`You selected the ${planName} plan. Redirecting to checkout...`);
+                
+                // Close the overlay with animation
+                const overlay = document.getElementById('product-selection-overlay');
+                const content = overlay.querySelector('.product-selection-content');
+                
+                overlay.style.opacity = '0';
+                content.style.transform = 'translateY(20px)';
+                
+                // Redirect after animation completes
+                setTimeout(() => {
+                    // Make a fetch POST request to get the Stripe checkout URL
+                    fetch('http://localhost:8080/create-checkout-session-monthly', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email: userEmail })
+                    })
+                    .then(response => response.text())
+                    .then(url => {
+                        // Open the Stripe checkout URL in a new window
+                        if (url && url.includes('https://')) {
+                            window.open(url, '_blank');
+                        } else {
+                            console.error('Invalid checkout URL received:', url);
+                            showNotification('Error creating checkout session. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error creating checkout session:', error);
+                        showNotification('Error creating checkout session. Please try again.');
+                    });
+                }, 300);
+            });
+        }
+        
+        // Annual plan button (second button)
+        if (buttons[1]) {
+            buttons[1].addEventListener('click', () => {
+                const planName = 'Annual';
+                showNotification(`You selected the ${planName} plan. Redirecting to checkout...`);
+                
+                // Close the overlay with animation
+                const overlay = document.getElementById('product-selection-overlay');
+                const content = overlay.querySelector('.product-selection-content');
+                
+                overlay.style.opacity = '0';
+                content.style.transform = 'translateY(20px)';
+                
+                // Redirect after animation completes
+                setTimeout(() => {
+                    // Make a fetch POST request to get the Stripe checkout URL
+                    fetch('http://localhost:8080/create-checkout-session-yearly', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email: userEmail })
+                    })
+                    .then(response => response.text())
+                    .then(url => {
+                        // Open the Stripe checkout URL in a new window
+                        if (url && url.includes('https://')) {
+                            window.open(url, '_blank');
+                        } else {
+                            console.error('Invalid checkout URL received:', url);
+                            showNotification('Error creating checkout session. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error creating checkout session:', error);
+                        showNotification('Error creating checkout session. Please try again.');
+                    });
+                }, 300);
+            });
+        }
+        
+        // Lifetime plan button (third button)
+        if (buttons[2]) {
+            buttons[2].addEventListener('click', () => {
+                const planName = 'Lifetime';
+                showNotification(`You selected the ${planName} plan. Redirecting to checkout...`);
+                
+                // Close the overlay with animation
+                const overlay = document.getElementById('product-selection-overlay');
+                const content = overlay.querySelector('.product-selection-content');
+                
+                overlay.style.opacity = '0';
+                content.style.transform = 'translateY(20px)';
+                
+                // Redirect after animation completes
+                setTimeout(() => {
+                    // Make a fetch POST request to get the Stripe checkout URL
+                    fetch('http://localhost:8080/create-checkout-session-lifetime', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ email: userEmail })
+                    })
+                    .then(response => response.text())
+                    .then(url => {
+                        // Open the Stripe checkout URL in a new window
+                        if (url && url.includes('https://')) {
+                            window.open(url, '_blank');
+                        } else {
+                            console.error('Invalid checkout URL received:', url);
+                            showNotification('Error creating checkout session. Please try again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error creating checkout session:', error);
+                        showNotification('Error creating checkout session. Please try again.');
+                    });
+                }, 300);
+            });
+        }
+    };
+    
+    // Add overlay and content to the document
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    // Add hover effects and button listeners
+    addHoverEffects();
+    addButtonListeners();
+
+    // Trigger animation after a small delay
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+        content.style.transform = 'translateY(0)';
+    }, 10);
+
+    // Add click outside to close
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.style.opacity = '0';
+            content.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                // Instead of just hiding it, remove it from the DOM completely
+                overlay.remove();
+            }, 300);
+        }
+    });
+
+    // Add styles for the overlay
+    const style = document.createElement('style');
+    style.textContent = `
+        #product-selection-overlay {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        #product-selection-overlay .product-selection-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #product-selection-overlay .product-selection-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        #product-selection-overlay .product-selection-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        
+        #product-selection-overlay .product-selection-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    `;
+    document.head.appendChild(style);
+}

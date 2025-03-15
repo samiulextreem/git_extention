@@ -11,14 +11,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*","https://x.com/i/*"],
+      "matches": ["https://chatgpt.com/*","https://x.com/i/*","https://claude.ai/*"],
       "js": ["content.js", "script.js"],
       "css": ["style.css"]
     }
   ],
   "web_accessible_resources": [
     {
-        "resources": ["welcome.html","checkout.html","success.html","cancle.html"],
+        "resources": ["welcome.html"],
         "matches": ["<all_urls>"]
     }
   ],

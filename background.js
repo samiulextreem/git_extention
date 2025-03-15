@@ -59,7 +59,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 
 
-
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
         chrome.storage.local.get(["hasSeenWelcome"], (result) => {
@@ -90,3 +89,25 @@ function updateUserFunctionality(data) {
         }
     });
 }
+
+
+// In your extension's background script or service worker
+function checkPaymentStatus() {
+    // Only check sync storage for user email
+    chrome.storage.sync.get('useremail', function(result) {
+        const userEmail = result.useremail;
+        
+        if (userEmail) {
+            console.log('Checking payment status for:', userEmail);
+            verifyPayment(userEmail);
+        } else {
+            // Not found in sync storage
+            console.log('No email found in sync storage, user not logged in');
+            chrome.storage.local.set({isPremium: false}, function() {
+                console.log('Premium status set to false (no user)');
+            });
+        }
+    });
+}
+
+
