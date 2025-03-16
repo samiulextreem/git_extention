@@ -1,121 +1,149 @@
-console.log("Current URL from content.js:", window.location.href);
+// content.js - Main functionality for the Chrome extension
+console.log("Content script loaded on:", window.location.href);
 
-if (!window.location.href.includes("chatgpt.com")){
-    showButtonOnTextSelection();
+// Configuration
+const CONFIG = {
+    API_BASE_URL: 'https://790a-2-40-40-33.ngrok-free.app',
+    STORAGE_KEYS: {
+        USER_EMAIL: 'useremail',
+        IS_PREMIUM: 'isPremium',
+        PRODUCT_INFO: 'productInfo'
+    }
+};
+
+// State management
+const state = {
+    isPremium: false,
+    isLoggedIn: false,
+    userEmail: null
+};
+
+// Initialize the extension based on current URL
+function initializeExtension() {
+    if (!window.location.href.includes("chatgpt.com")) {
+        showButtonOnTextSelection();
+    }
+    
+    // Load user data from storage
+    loadUserData();
 }
 
-let ispaiduser = false;
+// Load user data from Chrome storage
+async function loadUserData() {
+    try {
+        const result = await chrome.storage.sync.get(CONFIG.STORAGE_KEYS.USER_EMAIL);
+        
+        if (result[CONFIG.STORAGE_KEYS.USER_EMAIL]) {
+            state.userEmail = result[CONFIG.STORAGE_KEYS.USER_EMAIL];
+            state.isLoggedIn = true;
+            
+            console.log("User email loaded:", state.userEmail);
+            
+            // Verify payment status
+            await verifyPayment(state.userEmail);
+        } else {
+            console.log("No user email found in storage");
+            state.isLoggedIn = false;
+        }
+    } catch (error) {
+        console.error("Error loading user data:", error);
+    }
+}
+
 // Helper function to verify payment with the backend
-function verifyPayment(userEmail) {
+async function verifyPayment(userEmail) {
     if (!userEmail) {
         console.log('Cannot verify payment: userEmail is null or empty');
         return Promise.reject('No email provided');
     }
     
     console.log('Verifying payment for:', userEmail);
-    return fetch(`https://790a-2-40-40-33.ngrok-free.app/verify-payment?email=${userEmail}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Payment status checked:', data);
+    
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/verify-payment?email=${encodeURIComponent(userEmail)}`);
+        
+        if (!response.ok) {
+            throw new Error(`Network response error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Payment status checked:', data);
+        
+        // Handle the expected JSON structure with 'success' and 'product_info' fields
+        if (data && typeof data.success !== 'undefined') {
+            state.isPremium = data.success;
             
-            // Handle the expected JSON structure with 'success' and 'product_info' fields
-            if (data && typeof data.success !== 'undefined') {
-                ispaiduser = data.success;
-                
-                // Log product info if available
-                if (data.product_info) {
-                    console.log('Product info:', data.product_info);
-                }
-                
-                // Update the premium status in local storage
-                chrome.storage.local.set({
-                    isPremium: ispaiduser,
-                    productInfo: data.product_info || {}
-                }, function() {
-                    console.log('Premium status saved to storage:', ispaiduser);
-                });
-                
-                // Update ad banner visibility
-                const adBanner = document.querySelector('.ad-banner-container');
-                if (adBanner) {
-                    if (ispaiduser) {
-                        adBanner.style.display = 'none';
-                        console.log('User is premium, hiding ads');
-                    } else {
-                        adBanner.style.display = 'flex';
-                        console.log('User is not premium, showing ads');
-                    }
-                }
-            } else {
-                console.warn('Unexpected response format:', data);
-                ispaiduser = false;
+            // Log product info if available
+            if (data.product_info) {
+                console.log('Product info:', data.product_info);
             }
             
-            return data;
-        })
-        .catch(error => {
-            console.error('Error checking payment status:', error);
-            return {success: false, product_info: null}; // Return default value on error
-        });
+            // Update the premium status in local storage
+            await updatePremiumStatus(state.isPremium, data.product_info || {});
+            
+            // Update UI based on premium status
+            updateUIForPremiumStatus();
+        } else {
+            console.warn('Unexpected response format:', data);
+            state.isPremium = false;
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Error checking payment status:', error);
+        return {success: false, product_info: null}; // Return default value on error
+    }
 }
 
-// Properly fetch and store the user email
-let userEmail = null; // Initialize as null
-
-// Fetch user email from sync storage
-chrome.storage.sync.get('useremail', function(result) {
-    if (result.useremail) {
-        userEmail = result.useremail;
-        console.log("User email loaded:", userEmail);
-        // Update login status
-        isLoggedIn = true;
-        
-        // Now that we have the email, verify payment
-        verifyPayment(userEmail).then(data => {
-            console.log('Payment verification completed');
+// Update premium status in storage
+async function updatePremiumStatus(isPremium, productInfo) {
+    return new Promise((resolve, reject) => {
+        chrome.storage.local.set({
+            [CONFIG.STORAGE_KEYS.IS_PREMIUM]: isPremium,
+            [CONFIG.STORAGE_KEYS.PRODUCT_INFO]: productInfo
+        }, () => {
+            if (chrome.runtime.lastError) {
+                console.error('Error saving premium status:', chrome.runtime.lastError);
+                reject(chrome.runtime.lastError);
+            } else {
+                console.log('Premium status saved to storage:', isPremium);
+                resolve();
+            }
         });
-    } else {
-        console.log("No user email found in storage");
-        isLoggedIn = false;
-    }
-});
+    });
+}
 
-// Remove this line as it's now called inside the chrome.storage.sync.get callback
-// verifyPayment(userEmail);
+// Update UI elements based on premium status
+function updateUIForPremiumStatus() {
+    const adBanner = document.querySelector('.ad-banner-container');
+    if (adBanner) {
+        if (state.isPremium) {
+            adBanner.style.display = 'none';
+            console.log('User is premium, hiding ads');
+        } else {
+            adBanner.style.display = 'flex';
+            console.log('User is not premium, showing ads');
+        }
+    }
+}
 
 // Listen for changes to the premium status
 chrome.storage.onChanged.addListener(function(changes, namespace) {
     if (namespace === 'local') {
         // Handle premium status changes
-        if (changes.isPremium) {
-            const isPremium = changes.isPremium.newValue;
-            ispaiduser = isPremium; // Update the ispaiduser variable
+        if (changes[CONFIG.STORAGE_KEYS.IS_PREMIUM]) {
+            const isPremium = changes[CONFIG.STORAGE_KEYS.IS_PREMIUM].newValue;
+            state.isPremium = isPremium; // Update the state
             console.log('Premium status changed:', isPremium);
             
-            // Update ad banner visibility
-            const adBanner = document.querySelector('.ad-banner-container');
-            if (adBanner) {
-                if (isPremium) {
-                    adBanner.style.display = 'none';
-                    console.log('User became premium, hiding ad banner');
-                } else {
-                    adBanner.style.display = 'flex';
-                    console.log('User is no longer premium, showing ad banner');
-                }
-            }
-        }
-        
-        // Handle product info changes
-        if (changes.productInfo) {
-            console.log('Product info updated:', changes.productInfo.newValue);
+            // Update UI based on premium status
+            updateUIForPremiumStatus();
         }
     }
 });
+
+// Initialize the extension
+initializeExtension();
 
 let currentChat = {
     title: "", // Default empty string
@@ -123,7 +151,6 @@ let currentChat = {
 };
 let isSearchVisible = true;
 let overlayActvated = false;
-let isLoggedIn = false;
 
 
 
@@ -881,20 +908,20 @@ function createMenuButton() {
     `;
     
     // First check the ispaiduser variable (which might be set already)
-    if (ispaiduser) {
+    if (state.isPremium) {
         adBannerContainer.style.display = 'none';
         console.log('User is premium (from variable), hiding ad banner on initialization');
     } else {
         // If not set, check storage as a fallback
-        chrome.storage.local.get(['isPremium', 'productInfo'], function(result) {
-            if (result.isPremium) {
+        chrome.storage.local.get([CONFIG.STORAGE_KEYS.IS_PREMIUM, CONFIG.STORAGE_KEYS.PRODUCT_INFO], function(result) {
+            if (result[CONFIG.STORAGE_KEYS.IS_PREMIUM]) {
                 // User is premium, hide the ad banner
                 adBannerContainer.style.display = 'none';
-                ispaiduser = true; // Update the variable to match storage
+                state.isPremium = true; // Update the state to match storage
                 
                 // Log product info if available
-                if (result.productInfo) {
-                    console.log('Product info from storage:', result.productInfo);
+                if (result[CONFIG.STORAGE_KEYS.PRODUCT_INFO]) {
+                    console.log('Product info from storage:', result[CONFIG.STORAGE_KEYS.PRODUCT_INFO]);
                 }
                 
                 console.log('User is premium (from storage), hiding ad banner on initialization');
@@ -1675,8 +1702,8 @@ const dommenubuttoncreator = new MutationObserver((mutations) => {
         
         // Use the Promise-based loginchecker and handle the result properly
         loginchecker().then(isLoggedInResult => {
-            isLoggedIn = isLoggedInResult;
-            if (isLoggedIn == true){
+            state.isLoggedIn = isLoggedInResult;
+            if (state.isLoggedIn == true){
                 // Call the function to create menu button and overlay
                 const menuElements = createMenuButton();
             }
@@ -2602,7 +2629,7 @@ function showProductSelectionOverlay() {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ email: userEmail })
+                        body: JSON.stringify({ email: state.userEmail })
                     })
                     .then(response => response.text())
                     .then(url => {
@@ -2643,7 +2670,7 @@ function showProductSelectionOverlay() {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ email: userEmail })
+                        body: JSON.stringify({ email: state.userEmail })
                     })
                     .then(response => response.text())
                     .then(url => {
@@ -2684,7 +2711,7 @@ function showProductSelectionOverlay() {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ email: userEmail })
+                        body: JSON.stringify({ email: state.userEmail })
                     })
                     .then(response => response.text())
                     .then(url => {

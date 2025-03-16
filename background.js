@@ -1,39 +1,162 @@
-// This file can be used for background tasks if needed.
-// Currently, it can remain empty if no background functionality is required. 
+// background.js - Background service worker for the extension
+
+// Configuration
+const CONFIG = {
+    STORAGE_KEYS: {
+        USER_EMAIL: 'useremail',
+        HAS_SEEN_WELCOME: 'hasSeenWelcome',
+        IS_PREMIUM: 'isPremium'
+    },
+    POPUP: {
+        WIDTH: 400,
+        HEIGHT: 600
+    }
+};
+
+// State management
 let popupWindowId = null; // Variable to store the popup window ID
-// clearExtentionstorage();
 
+/**
+ * Initialize the background service worker
+ */
+function initialize() {
+    setupMessageListeners();
+    setupInstallListener();
+}
 
-// Listen for messages from content.js
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "openpopup") {
-        createPopupWindow();
-    }
-
-    if (request.action === "updateTasksToDoAfterLogin") {
+/**
+ * Set up message listeners for communication with content scripts
+ */
+function setupMessageListeners() {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        console.log('Background received message:', request.action);
         
-        let email = request.data;
-        updateUserFunctionality(email);
-        console.log('welcome back, ', email);
-    }
-});
+        switch (request.action) {
+            case 'openpopup':
+                createPopupWindow();
+                break;
+                
+            case 'updateTasksToDoAfterLogin':
+                const email = request.data;
+                updateUserFunctionality(email);
+                console.log('Welcome back,', email);
+                break;
+                
+            case 'download':
+                handleDownload(request);
+                break;
+                
+            default:
+                console.log('Unknown action:', request.action);
+        }
+        
+        // Return true to indicate async response (if needed)
+        return true;
+    });
+}
 
+/**
+ * Set up install listener to show welcome page on first install
+ */
+function setupInstallListener() {
+    chrome.runtime.onInstalled.addListener((details) => {
+        if (details.reason === "install") {
+            showWelcomePage();
+        }
+    });
+}
 
-// Helper function to create the popup window
+/**
+ * Show welcome page on first install
+ */
+function showWelcomePage() {
+    chrome.storage.local.get([CONFIG.STORAGE_KEYS.HAS_SEEN_WELCOME], (result) => {
+        if (!result[CONFIG.STORAGE_KEYS.HAS_SEEN_WELCOME]) {
+            chrome.tabs.create({ url: "welcome.html" });
+            chrome.storage.local.set({ [CONFIG.STORAGE_KEYS.HAS_SEEN_WELCOME]: true });
+        }
+    });
+}
+
+/**
+ * Create popup window for login
+ */
 function createPopupWindow() {
     chrome.windows.create({
         url: chrome.runtime.getURL("login_popup.html"),
         type: "panel",
-        width: 400,
-        height: 600
+        width: CONFIG.POPUP.WIDTH,
+        height: CONFIG.POPUP.HEIGHT
     }, (window) => {
         popupWindowId = window.id;
     });
 }
 
+/**
+ * Handle download request from content script
+ * @param {Object} request - The download request
+ */
+function handleDownload(request) {
+    chrome.downloads.download({
+        url: request.url,
+        filename: request.filename,
+        saveAs: true // Prompts the user to choose location
+    });
+}
 
-function clearExtentionstorage() {
-    console.log('clearing storage from background');
+/**
+ * Update user functionality after login
+ * @param {string} email - User email
+ */
+function updateUserFunctionality(email) {
+    chrome.tabs.query({}, (tabs) => {
+        if (tabs && tabs.length > 0) {
+            console.log("Checking tabs for matches...");
+            tabs.forEach((tab) => {
+                const tabUrl = tab.url || "No URL (e.g., chrome:// page)";
+
+                if (tabUrl.includes("chatgpt.com")) {
+                    // Only update the login button with user name
+                    chrome.tabs.sendMessage(tab.id, { 
+                        action: "updateloginevent", 
+                        data: email 
+                    });
+                }
+            });
+        } else {
+            console.log("No tabs found.");
+        }
+    });
+}
+
+/**
+ * Check payment status for the current user
+ */
+function checkPaymentStatus() {
+    // Only check sync storage for user email
+    chrome.storage.sync.get(CONFIG.STORAGE_KEYS.USER_EMAIL, function(result) {
+        const userEmail = result[CONFIG.STORAGE_KEYS.USER_EMAIL];
+        
+        if (userEmail) {
+            console.log('Checking payment status for:', userEmail);
+            verifyPayment(userEmail);
+        } else {
+            // Not found in sync storage
+            console.log('No email found in sync storage, user not logged in');
+            chrome.storage.local.set({
+                [CONFIG.STORAGE_KEYS.IS_PREMIUM]: false
+            }, function() {
+                console.log('Premium status set to false (no user)');
+            });
+        }
+    });
+}
+
+/**
+ * Clear extension storage (for debugging)
+ */
+function clearExtensionStorage() {
+    console.log('Clearing storage from background');
     chrome.storage.sync.clear(() => {
         if (chrome.runtime.lastError) {
             console.error("Error clearing storage:", chrome.runtime.lastError);
@@ -43,71 +166,7 @@ function clearExtentionstorage() {
     });
 }
 
-
-
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "download") {
-        chrome.downloads.download({
-            url: message.url,
-            filename: message.filename,
-            saveAs: true // Prompts the user to choose location
-        });
-    }
-});
-
-
-
-
-chrome.runtime.onInstalled.addListener((details) => {
-    if (details.reason === "install") {
-        chrome.storage.local.get(["hasSeenWelcome"], (result) => {
-            if (!result.hasSeenWelcome) {
-                chrome.tabs.create({ url: "welcome.html" });
-                chrome.storage.local.set({ "hasSeenWelcome": true });
-            }
-        });
-    }
-});
-
-
-function updateUserFunctionality(data) {
-    chrome.tabs.query({}, (tabs) => {
-        if (tabs && tabs.length > 0) {
-            console.log("Checking tabs for matches...");
-            tabs.forEach((tab, index) => {
-                const tabUrl = tab.url || "No URL (e.g., chrome:// page)";
-                // console.log(`Tab ID: ${tab.id}, URL: ${tabUrl}`);
-
-                if (tabUrl.includes("chatgpt.com")) {
-                    //only update the log in button with user name
-                    chrome.tabs.sendMessage(tab.id, { action: "updateloginevent", data: data });
-                }
-            });
-        } else {
-            console.log("No tabs found.");
-        }
-    });
-}
-
-
-// In your extension's background script or service worker
-function checkPaymentStatus() {
-    // Only check sync storage for user email
-    chrome.storage.sync.get('useremail', function(result) {
-        const userEmail = result.useremail;
-        
-        if (userEmail) {
-            console.log('Checking payment status for:', userEmail);
-            verifyPayment(userEmail);
-        } else {
-            // Not found in sync storage
-            console.log('No email found in sync storage, user not logged in');
-            chrome.storage.local.set({isPremium: false}, function() {
-                console.log('Premium status set to false (no user)');
-            });
-        }
-    });
-}
+// Initialize the background service worker
+initialize();
 
 

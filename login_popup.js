@@ -1,4 +1,6 @@
-// popup.js
+/**
+ * login_popup.js - Handles authentication flow for the extension
+ */
 
 // Constants for configuration
 const CONFIG = {
@@ -7,31 +9,59 @@ const CONFIG = {
 	RETRY_DELAY: 1000,
 	POLL_INTERVAL: 3000,
 	MAX_POLL_TIME: 300000, // 5 minutes
-	REQUEST_TIMEOUT: 10000  // 10 seconds
+	REQUEST_TIMEOUT: 10000,  // 10 seconds
+	STORAGE_KEYS: {
+		USER_EMAIL: 'useremail',
+		LAST_SYNC: 'last_sync'
+	}
 };
 
+// State management
+const state = {
+	pollTimer: null,
+	pollInterval: null
+};
+
+/**
+ * Initialize the popup when DOM is loaded
+ */
 document.addEventListener('DOMContentLoaded', () => {
 	const messageDiv = document.getElementById('message');
 	const emailInput = document.getElementById('email');
 	const requestButton = document.getElementById('requestButton');
 	
-	let pollTimer = null;
-	let pollInterval = null;
-	
 	// Focus the email input when the popup opens
-	emailInput.focus();
+	emailInput?.focus();
 	
+	// Add event listeners
+	requestButton?.addEventListener('click', requestMagicLink);
+	
+	// Add cleanup on window close
+	window.addEventListener('beforeunload', cleanup);
+	
+	/**
+	 * Display a message to the user
+	 * @param {string} text - Message text
+	 * @param {string} type - Message type (error or success)
+	 */
 	function showMessage(text, type = 'error') {
 		if (!messageDiv) return;
 		messageDiv.textContent = text;
 		messageDiv.className = 'message show ' + type;
 	}
 	
+	/**
+	 * Hide the message
+	 */
 	function hideMessage() {
 		if (!messageDiv) return;
 		messageDiv.className = 'message';
 	}
 	
+	/**
+	 * Set loading state
+	 * @param {boolean} isLoading - Whether the UI is in loading state
+	 */
 	function setLoading(isLoading) {
 		if (!requestButton) return;
 		if (isLoading) {
@@ -43,13 +73,24 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 	
+	/**
+	 * Validate email format
+	 * @param {string} email - Email to validate
+	 * @returns {boolean} - Whether the email is valid
+	 */
 	function validateEmail(email) {
 		if (!email) return false;
 		const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		return re.test(String(email).toLowerCase());
 	}
 
-	// Enhanced fetch with timeout and retry
+	/**
+	 * Enhanced fetch with timeout and retry
+	 * @param {string} url - URL to fetch
+	 * @param {Object} options - Fetch options
+	 * @param {number} retries - Number of retries
+	 * @returns {Promise<Response>} - Fetch response
+	 */
 	async function fetchWithRetry(url, options, retries = CONFIG.MAX_RETRIES) {
 		const timeout = new Promise((_, reject) => 
 			setTimeout(() => reject(new Error('Request timeout')), CONFIG.REQUEST_TIMEOUT)
@@ -78,25 +119,31 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
+	/**
+	 * Clear polling timers
+	 */
 	function clearPolling() {
-		if (pollInterval) clearInterval(pollInterval);
-		if (pollTimer) clearTimeout(pollTimer);
-		pollInterval = null;
-		pollTimer = null;
+		if (state.pollInterval) clearInterval(state.pollInterval);
+		if (state.pollTimer) clearTimeout(state.pollTimer);
+		state.pollInterval = null;
+		state.pollTimer = null;
 	}
 
+	/**
+	 * Request magic link for authentication
+	 */
 	async function requestMagicLink() {
 		try {
 			hideMessage();
-			const inputemail = emailInput?.value?.trim();
+			const inputEmail = emailInput?.value?.trim();
 			
-			if (!inputemail) {
+			if (!inputEmail) {
 				showMessage('Please enter your email address', 'error');
 				emailInput?.focus();
 				return;
 			}
 			
-			if (!validateEmail(inputemail)) {
+			if (!validateEmail(inputEmail)) {
 				showMessage('Please enter a valid email address', 'error');
 				emailInput?.focus();
 				return;
@@ -104,16 +151,16 @@ document.addEventListener('DOMContentLoaded', () => {
 			
 			setLoading(true);
 			
-			const stored_data = await new Promise(resolve => 
+			const storedData = await new Promise(resolve => 
 				chrome.storage.sync.get(null, resolve)
 			);
 			
-			if (stored_data?.useremail === inputemail) {
+			if (storedData?.[CONFIG.STORAGE_KEYS.USER_EMAIL] === inputEmail) {
 				console.log("User exists - checking auth status");
-				await checkAuthStatus(inputemail);
+				await checkAuthStatus(inputEmail);
 			} else {
 				console.log("Email changed - requesting new magic link");
-				await requestMagicLinkForEmail(inputemail);
+				await requestMagicLinkForEmail(inputEmail);
 			}
 		} catch (error) {
 			console.error('Error in requestMagicLink:', error);
@@ -122,6 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
+	/**
+	 * Check authentication status
+	 * @param {string} email - User email
+	 */
 	async function checkAuthStatus(email) {
 		if (!email) {
 			console.error('No email provided to checkAuthStatus');
@@ -139,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			
 			if (data.authenticated === true) {
 				showMessage('Login successful! Redirecting...', 'success');
-				console.log('log in successful', data.authenticated);
+				console.log('Log in successful', data.authenticated);
 				await mergeSyncAndUpdateChromeStorage(email, {});
 				chrome.runtime.sendMessage({ 
 					action: "updateTasksToDoAfterLogin", 
@@ -157,6 +208,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
+	/**
+	 * Close the popup after a delay
+	 * @param {number} delay - Delay in milliseconds
+	 */
 	function closePopup(delay) {
 		setTimeout(() => {
 			try {
@@ -167,6 +222,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		}, delay);
 	}
 
+	/**
+	 * Pull data from Firebase server
+	 * @param {string} email - User email
+	 * @returns {Promise<Object>} - User data
+	 */
 	async function pullDataFromFirebaseServer(email) {
 		if (!email) throw new Error('Email is required for data sync');
 
@@ -183,18 +243,23 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	async function mergeSyncAndUpdateChromeStorage(useremail, existingData) {
-		if (!useremail) {
+	/**
+	 * Merge and update Chrome storage with server data
+	 * @param {string} userEmail - User email
+	 * @param {Object} existingData - Existing data
+	 */
+	async function mergeSyncAndUpdateChromeStorage(userEmail, existingData) {
+		if (!userEmail) {
 			throw new Error('Email is required for storage sync');
 		}
 
 		try {
-			const userData = await pullDataFromFirebaseServer(useremail);
+			const userData = await pullDataFromFirebaseServer(userEmail);
 			const updatedData = {
 				...existingData,
 				...userData,
-				useremail, // Ensure email is stored
-				last_sync: new Date().toISOString() // Add sync timestamp
+				[CONFIG.STORAGE_KEYS.USER_EMAIL]: userEmail, // Ensure email is stored
+				[CONFIG.STORAGE_KEYS.LAST_SYNC]: new Date().toISOString() // Add sync timestamp
 			};
 			
 			await new Promise((resolve, reject) => {
@@ -216,13 +281,17 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	async function requestMagicLinkForEmail(mail) {
+	/**
+	 * Request magic link for email
+	 * @param {string} email - User email
+	 */
+	async function requestMagicLinkForEmail(email) {
 		try {
 			const response = await fetchWithRetry(
 				`${CONFIG.API_BASE_URL}/api/request_magic_link`,
 				{
 					method: 'POST',
-					body: JSON.stringify({ inputemail: mail })
+					body: JSON.stringify({ inputemail: email })
 				}
 			);
 
@@ -234,12 +303,12 @@ document.addEventListener('DOMContentLoaded', () => {
 			clearPolling();
 			
 			// Start new polling
-			pollInterval = setInterval(() => {
-				checkAuthStatus(mail).catch(console.error);
+			state.pollInterval = setInterval(() => {
+				checkAuthStatus(email).catch(console.error);
 			}, CONFIG.POLL_INTERVAL);
 			
 			// Set timeout to clear polling
-			pollTimer = setTimeout(() => {
+			state.pollTimer = setTimeout(() => {
 				clearPolling();
 				if (requestButton?.classList.contains('loading')) {
 					setLoading(false);
@@ -249,27 +318,17 @@ document.addEventListener('DOMContentLoaded', () => {
 			
 		} catch (error) {
 			console.error('Error requesting magic link:', error);
-			showMessage('Error sending magic link. Please try again.', 'error');
+			showMessage('Failed to send magic link. Please try again.', 'error');
 			setLoading(false);
 		}
 	}
 
-	// Clean up function
+	/**
+	 * Clean up resources
+	 */
 	function cleanup() {
 		clearPolling();
-		setLoading(false);
 	}
-
-	// Add event listeners
-	requestButton?.addEventListener('click', requestMagicLink);
-	emailInput?.addEventListener('keypress', (e) => {
-		if (e.key === 'Enter') {
-			requestMagicLink();
-		}
-	});
-
-	// Clean up on window unload
-	window.addEventListener('unload', cleanup);
 });
 
 
