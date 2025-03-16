@@ -1586,8 +1586,10 @@ function createMenuButton() {
         // Save changes to Chrome storage
         try {
             const response = await fetchFromChromeStorage();
+            console.log('[addFolder] just before foler creation', response.folder_structure.chatgpt.Folders);
             // Add the new folder to the existing folders in storage
             response.folder_structure.chatgpt.Folders.push(newFolder);
+            console.log('[addFolder] just after foler creation', response.folder_structure.chatgpt.Folders);
             await chrome.storage.sync.set(response);
             console.log('[addFolder] Saved updated folders to Chrome storage after adding new folder');
         } catch (error) {
