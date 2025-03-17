@@ -3,11 +3,13 @@ console.log("Content script loaded on:", window.location.href);
 
 // Configuration
 const CONFIG = {
-    API_BASE_URL: 'https://790a-2-40-40-33.ngrok-free.app',
+    // API_BASE_URL will be set dynamically from the config
+    API_BASE_URL: null,
     STORAGE_KEYS: {
         USER_EMAIL: 'useremail',
         IS_PREMIUM: 'isPremium',
-        PRODUCT_INFO: 'productInfo'
+        PRODUCT_INFO: 'productInfo',
+        APP_CONFIG: 'appConfig'
     }
 };
 
@@ -19,13 +21,55 @@ const state = {
 };
 
 // Initialize the extension based on current URL
-function initializeExtension() {
+async function initializeExtension() {
+    // Load API URL from configuration
+    await loadApiUrl();
+    
     if (!window.location.href.includes("chatgpt.com")) {
         showButtonOnTextSelection();
     }
     
     // Load user data from storage
     loadUserData();
+}
+
+/**
+ * Load API URL from configuration
+ */
+async function loadApiUrl() {
+    try {
+        // First try to get from storage
+        const result = await chrome.storage.sync.get(CONFIG.STORAGE_KEYS.APP_CONFIG);
+        const appConfig = result[CONFIG.STORAGE_KEYS.APP_CONFIG];
+        
+        if (appConfig && appConfig.apiUrl) {
+            // Remove trailing slash if present
+            CONFIG.API_BASE_URL = appConfig.apiUrl.replace(/\/$/, '');
+            console.log('API URL loaded from storage:', CONFIG.API_BASE_URL);
+            return;
+        }
+        
+        // If not in storage, request from background script
+        const response = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
+                resolve(response);
+            });
+        });
+        
+        if (response && response.apiUrl) {
+            // Remove trailing slash if present
+            CONFIG.API_BASE_URL = response.apiUrl.replace(/\/$/, '');
+            console.log('API URL loaded from background:', CONFIG.API_BASE_URL);
+        } else {
+            // Fallback to default URL if not found
+            CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
+            console.warn('Failed to load API URL from config, using fallback');
+        }
+    } catch (error) {
+        console.error('Error loading API URL:', error);
+        // Fallback to default URL
+        CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
+    }
 }
 
 // Load user data from Chrome storage

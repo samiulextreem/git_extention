@@ -4,7 +4,8 @@
 
 // Constants for configuration
 const CONFIG = {
-	API_BASE_URL: 'https://790a-2-40-40-33.ngrok-free.app',
+	// API_BASE_URL will be set dynamically from the config
+	API_BASE_URL: null,
 	MAX_RETRIES: 3,
 	RETRY_DELAY: 1000,
 	POLL_INTERVAL: 3000,
@@ -25,10 +26,13 @@ const state = {
 /**
  * Initialize the popup when DOM is loaded
  */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 	const messageDiv = document.getElementById('message');
 	const emailInput = document.getElementById('email');
 	const requestButton = document.getElementById('requestButton');
+	
+	// Load API URL from configuration
+	await loadApiUrl();
 	
 	// Focus the email input when the popup opens
 	emailInput?.focus();
@@ -38,6 +42,34 @@ document.addEventListener('DOMContentLoaded', () => {
 	
 	// Add cleanup on window close
 	window.addEventListener('beforeunload', cleanup);
+	
+	/**
+	 * Load API URL from configuration
+	 */
+	async function loadApiUrl() {
+		try {
+			// Request API URL from background script
+			const response = await new Promise((resolve) => {
+				chrome.runtime.sendMessage({ action: 'getApiUrl' }, (response) => {
+					resolve(response);
+				});
+			});
+			
+			if (response && response.apiUrl) {
+				// Remove trailing slash if present
+				CONFIG.API_BASE_URL = response.apiUrl.replace(/\/$/, '');
+				console.log('API URL loaded:', CONFIG.API_BASE_URL);
+			} else {
+				// Fallback to default URL if not found
+				CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
+				console.warn('Failed to load API URL from config, using fallback');
+			}
+		} catch (error) {
+			console.error('Error loading API URL:', error);
+			// Fallback to default URL
+			CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
+		}
+	}
 	
 	/**
 	 * Display a message to the user

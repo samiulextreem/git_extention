@@ -1,0 +1,3 @@
+# API Configuration
+# Update this URL when your ngrok URL changes
+apiUrl: "http://127.0.0.1:8080"

@@ -1,11 +1,13 @@
 // background.js - Background service worker for the extension
+import { initializeConfig, getConfigFromStorage } from './utils/config_loader.js';
 
 // Configuration
 const CONFIG = {
     STORAGE_KEYS: {
         USER_EMAIL: 'useremail',
         HAS_SEEN_WELCOME: 'hasSeenWelcome',
-        IS_PREMIUM: 'isPremium'
+        IS_PREMIUM: 'isPremium',
+        APP_CONFIG: 'appConfig'
     },
     POPUP: {
         WIDTH: 400,
@@ -19,7 +21,15 @@ let popupWindowId = null; // Variable to store the popup window ID
 /**
  * Initialize the background service worker
  */
-function initialize() {
+async function initialize() {
+    // Load configuration from YAML file
+    try {
+        await initializeConfig();
+        console.log('Configuration initialized');
+    } catch (error) {
+        console.error('Error initializing configuration:', error);
+    }
+    
     setupMessageListeners();
     setupInstallListener();
 }
@@ -45,6 +55,12 @@ function setupMessageListeners() {
             case 'download':
                 handleDownload(request);
                 break;
+                
+            case 'getApiUrl':
+                getConfigFromStorage().then(config => {
+                    sendResponse({ apiUrl: config.apiUrl || null });
+                });
+                return true; // Indicate async response
                 
             default:
                 console.log('Unknown action:', request.action);
