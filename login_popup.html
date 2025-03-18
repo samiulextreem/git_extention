@@ -3,31 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Account Access</title>
+  <title>ChatNinja - Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
-      --primary-color: rgba(66, 153, 225, 0.8);
-      --primary-color-hover: rgba(66, 153, 225, 1);
-      --bg-color: rgba(30, 32, 35, 0.95);
-      --text-color: rgba(255, 255, 255, 0.9);
-      --text-muted: rgba(255, 255, 255, 0.6);
-      --border-color: rgba(255, 255, 255, 0.1);
-      --input-bg: rgba(20, 22, 25, 0.7);
-      --input-focus-bg: rgba(15, 17, 20, 0.9);
-      --shadow-color: rgba(0, 0, 0, 0.3);
-      --success-color: rgba(72, 187, 120, 0.8);
-      --error-color: rgba(245, 101, 101, 0.8);
+      --primary-color: #9D5CFF;
+      --secondary-color: #7C3AED;
+      --accent-color: #C4B5FD;
+      --background-color: #0A0612;
+      --card-bg: #190F2D;
+      --text-color: #E2E8F0;
+      --text-light: #94A3B8;
+      --dark-purple: #150B2E;
+      --border-color: rgba(124, 58, 237, 0.2);
+      --hover-bg: rgba(124, 58, 237, 0.15);
+      --premium-shadow: 0 8px 32px rgba(157, 92, 255, 0.25);
+      --card-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      --text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Segoe UI', Arial, sans-serif;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
     }
 
     body {
-      background-color: var(--bg-color);
+      background-color: var(--background-color);
       color: var(--text-color);
       display: flex;
       justify-content: center;
@@ -40,12 +43,12 @@
     .login-container {
       width: 100%;
       max-width: 400px;
-      background-color: var(--bg-color);
-      border-radius: 16px;
-      box-shadow: 
-        0 10px 25px var(--shadow-color),
-        0 0 0 1px rgba(255, 255, 255, 0.1),
-        0 0 30px rgba(66, 153, 225, 0.2);
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      box-shadow: var(--premium-shadow);
       padding: 35px;
       position: relative;
       overflow: hidden;
@@ -65,10 +68,51 @@
       right: 0;
       height: 3px;
       background: linear-gradient(90deg, 
-        rgba(66, 153, 225, 0), 
-        rgba(66, 153, 225, 0.8), 
-        rgba(66, 153, 225, 0));
+        var(--primary-color), 
+        var(--secondary-color), 
+        var(--primary-color));
       z-index: 1;
+    }
+
+    .icon-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .app-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--secondary-color);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--premium-shadow);
+      position: relative;
+    }
+
+    .app-icon::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 16px;
+      padding: 2px;
+      background: var(--primary-color);
+      -webkit-mask: 
+          linear-gradient(#fff 0 0) content-box, 
+          linear-gradient(#fff 0 0);
+      mask: 
+          linear-gradient(#fff 0 0) content-box, 
+          linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+    }
+
+    .app-icon svg {
+      width: 32px;
+      height: 32px;
+      color: var(--text-color);
     }
 
     .login-header {
@@ -78,13 +122,14 @@
 
     .login-title {
       font-size: 24px;
-      font-weight: 500;
+      font-weight: 600;
       margin-bottom: 10px;
-      letter-spacing: 0.5px;
+      color: var(--text-color);
+      filter: drop-shadow(0 2px 4px rgba(157, 92, 255, 0.3));
     }
 
     .login-subtitle {
-      color: var(--text-muted);
+      color: var(--text-light);
       font-size: 14px;
       line-height: 1.5;
     }
@@ -103,18 +148,19 @@
       display: block;
       margin-bottom: 8px;
       font-size: 14px;
-      letter-spacing: 0.3px;
+      color: var(--text-light);
+      font-weight: 500;
     }
 
     .form-control {
       width: 100%;
       padding: 14px 16px;
-      background-color: var(--input-bg);
+      background: var(--dark-purple);
       color: var(--text-color);
       border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 15px;
-      transition: all 0.2s ease;
+      transition: all 0.3s ease;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
@@ -123,26 +169,26 @@
       border-color: var(--primary-color);
       box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.2),
-        0 0 0 2px rgba(66, 153, 225, 0.2);
-      background-color: var(--input-focus-bg);
+        0 0 0 2px rgba(157, 92, 255, 0.2);
+      background: var(--card-bg);
     }
 
     .form-control::placeholder {
-      color: rgba(255, 255, 255, 0.4);
+      color: var(--text-light);
     }
 
     .btn {
       padding: 14px 20px;
-      background-color: var(--primary-color);
-      color: white;
+      background: var(--secondary-color);
+      color: var(--text-color);
       border: none;
       border-radius: 8px;
       cursor: pointer;
       font-size: 15px;
       font-weight: 500;
       letter-spacing: 0.3px;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(124, 58, 237, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -150,18 +196,13 @@
     }
 
     .btn:hover {
-      background-color: var(--primary-color-hover);
+      background: var(--primary-color);
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 6px 12px rgba(124, 58, 237, 0.3);
     }
 
     .btn:active {
       transform: translateY(0);
-    }
-
-    .btn svg {
-      width: 18px;
-      height: 18px;
     }
 
     .message {
@@ -181,14 +222,14 @@
     }
 
     .message.success {
-      background-color: rgba(72, 187, 120, 0.1);
-      color: var(--success-color);
+      background: rgba(72, 187, 120, 0.1);
+      color: #48BB78;
       border: 1px solid rgba(72, 187, 120, 0.2);
     }
 
     .message.error {
-      background-color: rgba(245, 101, 101, 0.1);
-      color: var(--error-color);
+      background: rgba(245, 101, 101, 0.1);
+      color: #F56565;
       border: 1px solid rgba(245, 101, 101, 0.2);
     }
 
@@ -196,17 +237,17 @@
       margin-top: 25px;
       text-align: center;
       font-size: 13px;
-      color: var(--text-muted);
+      color: var(--text-light);
     }
 
     .login-footer a {
       color: var(--primary-color);
       text-decoration: none;
-      transition: color 0.2s ease;
+      transition: color 0.3s ease;
     }
 
     .login-footer a:hover {
-      color: var(--primary-color-hover);
+      color: var(--secondary-color);
       text-decoration: underline;
     }
 
@@ -216,7 +257,7 @@
       height: 20px;
       border: 2px solid rgba(255, 255, 255, 0.3);
       border-radius: 50%;
-      border-top-color: white;
+      border-top-color: var(--text-color);
       animation: spin 0.8s linear infinite;
     }
 
@@ -231,45 +272,19 @@
     .btn.loading span {
       display: none;
     }
-
-    .icon-container {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-
-    .app-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(66, 153, 225, 0.8), rgba(159, 122, 234, 0.8));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .app-icon svg {
-      width: 32px;
-      height: 32px;
-      color: white;
-    }
   </style>
 </head>
 <body>
   <div class="login-container">
     <div class="icon-container">
       <div class="app-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"></path>
-          <path d="M12 11v6M9 14h6"></path>
-        </svg>
+        <i class="fas fa-dragon"></i>
       </div>
     </div>
     
     <div class="login-header">
-      <h1 class="login-title">Welcome </h1>
-      <p class="login-subtitle">Enter your email to receive a secure  link for instant access</p>
+      <h1 class="login-title">Welcome to ChatNinja</h1>
+      <p class="login-subtitle">Enter your email to receive a secure link for instant access</p>
     </div>
     
     <div class="login-form">
@@ -279,7 +294,7 @@
       </div>
       
       <button id="requestButton" class="btn">
-        <span>Send Link</span>
+        <span>Send Magic Link</span>
         <div class="loader"></div>
       </button>
     </div>

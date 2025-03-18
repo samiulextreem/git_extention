@@ -788,7 +788,7 @@ async function pullDataFromChromeStorage() {
 
 async function checkAuthStatus(email) {
     try {
-        const response = await fetch(`https://790a-2-40-40-33.ngrok-free.app/api/get_auth_status?email=${encodeURIComponent(email)}`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/get_auth_status?email=${encodeURIComponent(email)}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
@@ -2668,7 +2668,7 @@ function showProductSelectionOverlay() {
                 // Redirect after animation completes
                 setTimeout(() => {
                     // Make a fetch POST request to get the Stripe checkout URL
-                    fetch('https://790a-2-40-40-33.ngrok-free.app/create-checkout-session-monthly', {
+                    fetch(`${CONFIG.API_BASE_URL}/create-checkout-session-monthly`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2709,7 +2709,7 @@ function showProductSelectionOverlay() {
                 // Redirect after animation completes
                 setTimeout(() => {
                     // Make a fetch POST request to get the Stripe checkout URL
-                    fetch('https://790a-2-40-40-33.ngrok-free.app/create-checkout-session-yearly', {
+                    fetch(`${CONFIG.API_BASE_URL}/create-checkout-session-yearly`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2750,7 +2750,7 @@ function showProductSelectionOverlay() {
                 // Redirect after animation completes
                 setTimeout(() => {
                     // Make a fetch POST request to get the Stripe checkout URL
-                    fetch('https://790a-2-40-40-33.ngrok-free.app/create-checkout-session-lifetime', {
+                    fetch(`${CONFIG.API_BASE_URL}/create-checkout-session-lifetime`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

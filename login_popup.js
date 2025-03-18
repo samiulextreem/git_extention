@@ -60,14 +60,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 				CONFIG.API_BASE_URL = response.apiUrl.replace(/\/$/, '');
 				console.log('API URL loaded:', CONFIG.API_BASE_URL);
 			} else {
-				// Fallback to default URL if not found
-				CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
 				console.warn('Failed to load API URL from config, using fallback');
 			}
 		} catch (error) {
 			console.error('Error loading API URL:', error);
-			// Fallback to default URL
-			CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
+
 		}
 	}
 	

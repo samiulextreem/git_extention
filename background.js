@@ -131,8 +131,11 @@ function updateUserFunctionality(email) {
             tabs.forEach((tab) => {
                 const tabUrl = tab.url || "No URL (e.g., chrome:// page)";
 
-                if (tabUrl.includes("chatgpt.com")) {
-                    // Only update the login button with user name
+                // Check for all supported domains
+                if (tabUrl.includes("chatgpt.com") || 
+                    tabUrl.includes("x.com/i/") || 
+                    tabUrl.includes("claude.ai")) {
+                    // Update the login button with user name
                     chrome.tabs.sendMessage(tab.id, { 
                         action: "updateloginevent", 
                         data: email 

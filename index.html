@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatNinja - AI Chat Productivity Extension</title>
+    <link rel="stylesheet" href="static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="glass-nav">
+        <nav>
+            <div class="logo">
+                <i class="fas fa-dragon"></i>
+                ChatNinja
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#faq">FAQ</a></li>
+            </ul>
+            <div class="nav-buttons">
+                <button class="cta-btn">Get Started <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge fade-in">
+                <i class="fas fa-bolt"></i> Supercharge Your AI Chats
+            </div>
+            <h1 class="fade-in">A browser extension to boost productivity in ChatGPT, Claude & Grok</h1>
+            <p class="hero-subtitle fade-in">Transform your AI chat experience with powerful organization tools, quick shortcuts, and seamless workflow integration.</p>
+            <div class="hero-cta fade-in">
+                <button class="hero-btn primary"><i class="fab fa-chrome"></i> Add to Chrome</button>
+                <button class="hero-btn secondary">Watch Demo <i class="fas fa-play"></i></button>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item fade-in">
+                    <span class="stat-number" data-target="50">0</span><span class="stat-label">K+ Active Users</span>
+                </div>
+                <div class="stat-item fade-in">
+                    <span class="stat-number" data-target="4.9">0</span><span class="stat-label">/5 User Rating</span>
+                </div>
+                <div class="stat-item fade-in">
+                    <span class="stat-number" data-target="3">0</span><span class="stat-label"> AI Platforms</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-image fade-in">
+            <!-- We'll add the image later -->
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="section-header">
+            <span class="section-label fade-in">Features</span>
+            <h2 class="fade-in">Everything you need to stay productive</h2>
+            <p class="section-subtitle fade-in">Powerful features designed to transform your workflow</p>
+        </div>
+        <div class="feature-grid">
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-folder-tree"></i>
+                </div>
+                <h3>Smart Organization</h3>
+                <p>Create intelligent folders and categories with AI-powered chat organization.</p>
+                <a href="#" class="learn-more">Learn more <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>Advanced Search</h3>
+                <p>Find any conversation instantly with our powerful semantic search engine.</p>
+                <a href="#" class="learn-more">Learn more <i class="fas fa-arrow-right"></i></a>
+            </div>
+            <div class="feature-card fade-in">
+                <div class="feature-icon">
+                    <i class="fas fa-sync"></i>
+                </div>
+                <h3>Cross-Device Sync</h3>
+                <p>Access your data seamlessly across all your devices in real-time.</p>
+                <a href="#" class="learn-more">Learn more <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="pricing">
+        <div class="section-header">
+            <span class="section-label fade-in">Pricing</span>
+            <h2 class="fade-in">Choose your perfect plan</h2>
+            <p class="section-subtitle fade-in">Start small and upgrade as you grow</p>
+        </div>
+        
+        <!-- Pricing toggle -->
+        <div class="pricing-toggle fade-in">
+            <span id="monthly-toggle" class="toggle-label active">Monthly</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="pricing-toggle">
+                <span class="toggle-slider"></span>
+            </label>
+            <span id="yearly-toggle" class="toggle-label">Yearly (20% off)</span>
+        </div>
+        
+        <div class="pricing-grid">
+            <div class="pricing-card fade-in">
+                <div class="pricing-header">
+                    <h3>Basic</h3>
+                    <div class="price monthly-price">
+                        <span class="currency">$</span>
+                        <span class="amount">1.99</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <div class="price yearly-price" style="display: none;">
+                        <span class="currency">$</span>
+                        <span class="amount">19.90</span>
+                        <span class="period">/year</span>
+                    </div>
+                    <p class="billing-info">Billed monthly</p>
+                </div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> Basic chat organization</li>
+                    <li><i class="fas fa-check"></i> Simple search</li>
+                    <li><i class="fas fa-check"></i> 1 device sync</li>
+                </ul>
+                <button class="pricing-btn">Get Started</button>
+            </div>
+            <div class="pricing-card premium fade-in">
+                <div class="popular-badge">Most Popular</div>
+                <div class="pricing-header">
+                    <h3>Pro</h3>
+                    <div class="price monthly-price">
+                        <span class="currency">€</span>
+                        <span class="amount">4.99</span>
+                        <span class="period">/month</span>
+                    </div>
+                    <div class="price yearly-price" style="display: none;">
+                        <span class="currency">€</span>
+                        <span class="amount">20</span>
+                        <span class="period">/year</span>
+                    </div>
+                    <p class="billing-info">Billed yearly</p>
+                </div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> Advanced AI organization</li>
+                    <li><i class="fas fa-check"></i> Advanced semantic search</li>
+                    <li><i class="fas fa-check"></i> Unlimited device sync</li>
+                    <li><i class="fas fa-check"></i> Priority support</li>
+                </ul>
+                <button class="pricing-btn primary">Get Started</button>
+            </div>
+            <div class="pricing-card lifetime fade-in">
+                <div class="pricing-header">
+                    <h3>Lifetime</h3>
+                    <div class="price">
+                        <span class="currency">€</span>
+                        <span class="amount">50</span>
+                        <span class="period"></span>
+                    </div>
+                    <p class="billing-info">One-time payment</p>
+                </div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> All Pro features</li>
+                    <li><i class="fas fa-check"></i> Lifetime updates</li>
+                    <li><i class="fas fa-check"></i> Premium support</li>
+                    <li><i class="fas fa-check"></i> Extended API access</li>
+                </ul>
+                <button class="pricing-btn lifetime-btn">Get Started</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="logo">
+                    <i class="fas fa-bolt"></i>
+                    ChatNinja
+                </div>
+                <p>Empowering productivity through intelligent chat organization.</p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="#faq">FAQ</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <a href="#about">About</a>
+                    <a href="#blog">Blog</a>
+                    <a href="#careers">Careers</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="#privacy">Privacy Policy</a>
+                    <a href="#terms">Terms of Service</a>
+                    <a href="#cookies">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 ChatNinja. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="static/scripts.js"></script>
+</body>
+</html>
