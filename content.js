@@ -856,12 +856,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 function hideFlexSection() {
-    const flexSection = document.querySelector("body > div.flex.h-full.w-full.flex-col > div > div.relative.flex.h-full.w-full.flex-row.overflow-hidden > div > main > div.composer-parent.flex.h-full.flex-col.focus-visible\\:outline-0 > div.isolate.w-full.has-\\[\\[data-has-thread-error\\]\\]\\:pt-2.has-\\[\\[data-has-thread-error\\]\\]\\:\\[box-shadow\\:var\\(--sharp-edge-bottom-shadow\\)\\].dark\\:border-white\\/20.md\\:border-transparent.md\\:pt-0.md\\:dark\\:border-transparent > div.text-base.mx-auto.px-3.md\\:px-4.w-full.md\\:px-5.lg\\:px-4.xl\\:px-5 > div");
-    
+    const flexSection = document.querySelector("#composer-background");
+
     if (flexSection && isSearchVisible == true) {
         isSearchVisible = false;
         // Store original display style
-        // console.log(`should hid the ask box`);
+        console.log(`should hid the ask box`);
         flexSection.dataset.originalDisplay = getComputedStyle(flexSection).display;
         
         // Animation setup
@@ -878,10 +878,11 @@ function hideFlexSection() {
     }
 }
 function showFlexSection() {
-    const flexSection = document.querySelector("body > div.flex.h-full.w-full.flex-col > div > div.relative.flex.h-full.w-full.flex-row.overflow-hidden > div > main > div.composer-parent.flex.h-full.flex-col.focus-visible\\:outline-0 > div.isolate.w-full.has-\\[\\[data-has-thread-error\\]\\]\\:pt-2.has-\\[\\[data-has-thread-error\\]\\]\\:\\[box-shadow\\:var\\(--sharp-edge-bottom-shadow\\)\\].dark\\:border-white\\/20.md\\:border-transparent.md\\:pt-0.md\\:dark\\:border-transparent > div.text-base.mx-auto.px-3.md\\:px-4.w-full.md\\:px-5.lg\\:px-4.xl\\:px-5 > div");
+    const flexSection = document.querySelector("#composer-background");
+    if (flexSection) console.log('flexSection', flexSection);
     if (flexSection && isSearchVisible == false) {
         isSearchVisible = true;
-        // console.log(`should show the ask box`);
+        console.log(`should show the ask box`);
         // Initial state before animation
         flexSection.style.display = flexSection.dataset.originalDisplay || 'flex';
         flexSection.style.opacity = '0';
@@ -1077,6 +1078,7 @@ function createMenuButton() {
     settingsButton.title = "Settings";
     settingsButton.addEventListener("click", () => {
         console.log("Settings button clicked");
+        showSettingsOverlay();
     });
     buttonContainer.appendChild(settingsButton);
 
@@ -1787,6 +1789,23 @@ const domwatcherforaskbox = new MutationObserver((mutations) => {
 
     domwatcherforaskbox.disconnect(); // Stop observing once body is found
 
+    // Check the auto-hide setting and setup mouse observer accordingly
+    chrome.storage.sync.get(['autoHidePrompt'], (result) => {
+        // Default to true if setting is not found (backward compatibility)
+        const isAutoHideEnabled = result.autoHidePrompt !== undefined ? result.autoHidePrompt : true;
+
+        if (isAutoHideEnabled) {
+            setupMouseMoveObserver();
+        } else {
+            // If auto-hide is disabled, always show the prompt box
+            showFlexSection();
+        }
+    });
+  }
+});
+
+// Separate function to set up the mouse move observer
+function setupMouseMoveObserver() {
     document.addEventListener("mousemove", function (event) {
         const windowHeight = window.innerHeight; // Total height of the viewport
         const windowWidth = window.innerWidth; // Total width of the viewport
@@ -1798,21 +1817,19 @@ const domwatcherforaskbox = new MutationObserver((mutations) => {
 
         if (overlayActvated == false){
             if (mouseY > bottom30Percent && mouseX < right30percent) {
+                console.log(`[mouseobserver] should show the ask box`);
                 showFlexSection();
             } else {
+                console.log(`[mouseobserver] should hid the ask box`);
                 hideFlexSection();
             }
             // Replace absolute position logging with percentages
-            // const yPercent = ((mouseY / window.innerHeight) * 100).toFixed(2);
-            // const xPercent = ((mouseX / window.innerWidth) * 100).toFixed(2);
+            const yPercent = ((mouseY / window.innerHeight) * 100).toFixed(2);
+            const xPercent = ((mouseX / window.innerWidth) * 100).toFixed(2);
             // console.log(`[mouseobserver] Vertical: ${yPercent}%, Horizontal: ${xPercent}%`);
         }
-
-
     });
-  }
-});
-
+}
 
 // Function to print checked folders to console
 function printCheckedFolders() {
@@ -2415,10 +2432,12 @@ function showNotification(message, duration = 5000) {
 }
 
 
-// Start observing the document for changes
+// Initialize the observers
+// The domwatcherforaskbox will check the auto-hide setting internally
 domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree: true });
-// Start observing the document for changes
+// Start observing for menu button changes
 dommenubuttoncreator.observe(document.documentElement, { childList: true, subtree: true });
+
 
 // Add this function to show the product selection overlay
 function showProductSelectionOverlay() {
@@ -2829,3 +2848,292 @@ function showProductSelectionOverlay() {
     `;
     document.head.appendChild(style);
 }
+
+function showSettingsOverlay() {
+    // Check if overlay already exists
+    const existingOverlay = document.getElementById('settings-overlay');
+    if (existingOverlay) {
+        existingOverlay.style.display = 'flex';
+        return;
+    }
+
+    // Create overlay container
+    const overlay = document.createElement('div');
+    overlay.id = 'settings-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+
+    // Create content container
+    const content = document.createElement('div');
+    content.className = 'settings-content';
+    content.style.cssText = `
+        background-color: #111827;
+        border-radius: 1rem;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        padding: 2rem;
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+        position: relative;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow-y: auto;
+    `;
+
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'settings-overlay-close';
+    closeButton.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    `;
+    closeButton.style.cssText = `
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        z-index: 10;
+        transition: background-color 0.2s ease;
+    `;
+    closeButton.addEventListener('mouseover', () => {
+        closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+    });
+    closeButton.addEventListener('mouseout', () => {
+        closeButton.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+    });
+    closeButton.addEventListener('click', () => {
+        overlay.style.opacity = '0';
+        content.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            overlay.remove();
+            window.location.reload();
+        }, 300);
+    });
+    content.appendChild(closeButton);
+
+    // Create settings content
+    const settingsHTML = `
+        <div class="settings-container">
+            <h2 style="color: #f9fafb; margin-bottom: 1.5rem; font-size: 1.5rem; text-align: center;">Settings</h2>
+            
+            <div class="settings-section" style="margin-bottom: 2rem;">
+                <h3 style="color: #e5e7eb; margin-bottom: 1rem; font-size: 1.1rem;">Account Information</h3>
+                <div style="background-color: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 0.5rem;">
+                    <p style="color: #9ca3af; margin-bottom: 0.5rem;">Email Address</p>
+                    <p style="color: #f9fafb; font-weight: 500;">${state.userEmail || 'Not logged in'}</p>
+                </div>
+                <div style="background-color: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 0.5rem; margin-top: 1rem;">
+                    <p style="color: #9ca3af; margin-bottom: 0.5rem;">Subscription Status</p>
+                    <p style="color: ${state.isPremium ? '#10b981' : '#ef4444'}; font-weight: 500;">
+                        ${state.isPremium ? 'Premium' : 'Free'}
+                    </p>
+                </div>
+            </div>
+
+            <div class="settings-section" style="margin-bottom: 2rem;">
+                <h3 style="color: #e5e7eb; margin-bottom: 1rem; font-size: 1.1rem;">Preferences</h3>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background-color: rgba(255, 255, 255, 0.05); border-radius: 0.5rem;">
+                    <div>
+                        <p style="color: #f9fafb; margin-bottom: 0.25rem;">Auto-hide Prompt Box</p>
+                        <p style="color: #9ca3af; font-size: 0.875rem;">Automatically hide the prompt box after selection</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoHidePrompt">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section" style="margin-bottom: 2rem;">
+                <h3 style="color: #e5e7eb; margin-bottom: 1rem; font-size: 1.1rem;">Product Information</h3>
+                <div style="background-color: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 0.5rem;">
+                    <p style="color: #9ca3af; margin-bottom: 0.5rem;">Current Plan</p>
+                    <p style="color: #f9fafb; font-weight: 500;">${state.isPremium ? 'Premium' : 'Free'}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Create a container for the content
+    const contentContainer = document.createElement('div');
+    contentContainer.innerHTML = settingsHTML;
+    content.appendChild(contentContainer);
+
+    // Add overlay and content to the document
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+
+    // Add styles for the overlay
+    const style = document.createElement('style');
+    style.textContent = `
+        #settings-overlay {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #4b5563;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: #10b981;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        #settings-overlay .settings-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #settings-overlay .settings-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        #settings-overlay .settings-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        #settings-overlay .settings-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Trigger animation after a small delay
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+        content.style.transform = 'translateY(0)';
+    }, 10);
+
+    // Add click outside to close
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.style.opacity = '0';
+            content.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                overlay.remove();
+                window.location.reload();
+            }, 300);
+        }
+    });
+
+    // Load saved settings
+    chrome.storage.sync.get(['autoHidePrompt'], (result) => {
+        const autoHidePromptCheckbox = document.getElementById('autoHidePrompt');
+        if (autoHidePromptCheckbox) {
+            const isAutoHideEnabled = result.autoHidePrompt || false;
+            autoHidePromptCheckbox.checked = isAutoHideEnabled;
+            
+            // Apply current setting to the DOM watcher
+            if (isAutoHideEnabled) {
+                // Enable the DOM watcher
+                domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree: true });
+            } else {
+                // Disable the DOM watcher
+                domwatcherforaskbox.disconnect();
+                // Make sure the flex section is visible since auto-hide is disabled
+                showFlexSection();
+            }
+            
+            // Add change event listener
+            autoHidePromptCheckbox.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                chrome.storage.sync.set({ autoHidePrompt: enabled }, () => {
+                    console.log('Auto-hide prompt setting saved:', enabled);
+                    
+                    if (enabled) {
+                        // Enable the auto-hide functionality by setting up mouse observer
+                        setupMouseMoveObserver();
+                        console.log('Auto-hide prompt box enabled');
+                    } else {
+                        // Disable the auto-hide functionality by removing mouse observer effects
+                        // We don't need to disconnect the observer as it already disconnected after body was found
+                        showFlexSection(); // Make sure the prompt box is visible
+                        console.log('Auto-hide prompt box disabled');
+                    }
+                    
+                    // Show notification about setting change
+                    showNotification(`Auto-hide prompt box ${enabled ? 'enabled' : 'disabled'}`, 2000);
+                });
+            });
+        }
+    });
+}
+
+// These are now handled by the new implementation that respects the auto-hide setting
+// Start observing the document for changes based on auto-hide prompt setting
+chrome.storage.sync.get(['autoHidePrompt'], (result) => {
+    const isAutoHideEnabled = result.autoHidePrompt !== undefined ? result.autoHidePrompt : true; // Default to true if not set
+    
+    if (isAutoHideEnabled) {
+        // Enable the DOM watcher
+        domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree: true });
+        console.log('Auto-hide prompt box enabled (default)');
+    } else {
+        // Don't start the watcher if auto-hide is disabled
+        console.log('Auto-hide prompt box disabled by user setting');
+    }
+});
+
+// Start observing the document for menu button changes
+dommenubuttoncreator.observe(document.documentElement, { childList: true, subtree: true });
