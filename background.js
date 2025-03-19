@@ -187,5 +187,6 @@ function clearExtensionStorage() {
 
 // Initialize the background service worker
 initialize();
+// clearExtensionStorage();
 
 

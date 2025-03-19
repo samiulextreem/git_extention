@@ -62,13 +62,11 @@ async function loadApiUrl() {
             console.log('API URL loaded from background:', CONFIG.API_BASE_URL);
         } else {
             // Fallback to default URL if not found
-            CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
             console.warn('Failed to load API URL from config, using fallback');
         }
     } catch (error) {
         console.error('Error loading API URL:', error);
         // Fallback to default URL
-        CONFIG.API_BASE_URL = 'https://31e4-2-40-40-33.ngrok-free.app';
     }
 }
 
@@ -856,9 +854,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 function hideFlexSection() {
+    if (window.location.href == 'https://chatgpt.com/') {
+        console.log('wont hide the ask box: chatgpt.com in home page');
+        return;
+    }
     const flexSection = document.querySelector("#composer-background");
 
-    if (flexSection && isSearchVisible == true) {
+    if (flexSection && isSearchVisible == true ) {
         isSearchVisible = false;
         // Store original display style
         console.log(`should hid the ask box`);
@@ -879,10 +881,10 @@ function hideFlexSection() {
 }
 function showFlexSection() {
     const flexSection = document.querySelector("#composer-background");
-    if (flexSection) console.log('flexSection', flexSection);
+    // if (flexSection) console.log('flexSection', flexSection);
     if (flexSection && isSearchVisible == false) {
         isSearchVisible = true;
-        console.log(`should show the ask box`);
+        // console.log(`should show the ask box`);
         // Initial state before animation
         flexSection.style.display = flexSection.dataset.originalDisplay || 'flex';
         flexSection.style.opacity = '0';
@@ -947,13 +949,15 @@ function createMenuButton() {
                     border-radius: 8px; display: flex; align-items: center; justify-content: center; 
                     border: 1px dashed rgba(255, 255, 255, 0.3);">
             <span style="color: rgba(255, 255, 255, 0.7); font-size: 14px; text-align: center;">
-                Advertisement Banner
+                TRIAL VERSION
             </span>
         </div>
     `;
+
+    
     
     // First check the ispaiduser variable (which might be set already)
-    if (state.isPremium) {
+    if (state.isPremium ) {
         adBannerContainer.style.display = 'none';
         console.log('User is premium (from variable), hiding ad banner on initialization');
     } else {
@@ -1817,10 +1821,10 @@ function setupMouseMoveObserver() {
 
         if (overlayActvated == false){
             if (mouseY > bottom30Percent && mouseX < right30percent) {
-                console.log(`[mouseobserver] should show the ask box`);
+                // console.log(`[mouseobserver] should show the ask box`);
                 showFlexSection();
             } else {
-                console.log(`[mouseobserver] should hid the ask box`);
+                // console.log(`[mouseobserver] should hid the ask box`);
                 hideFlexSection();
             }
             // Replace absolute position logging with percentages
@@ -3128,10 +3132,10 @@ chrome.storage.sync.get(['autoHidePrompt'], (result) => {
     if (isAutoHideEnabled) {
         // Enable the DOM watcher
         domwatcherforaskbox.observe(document.documentElement, { childList: true, subtree: true });
-        console.log('Auto-hide prompt box enabled (default)');
+        // console.log('Auto-hide prompt box enabled (default)');
     } else {
         // Don't start the watcher if auto-hide is disabled
-        console.log('Auto-hide prompt box disabled by user setting');
+        // console.log('Auto-hide prompt box disabled by user setting');
     }
 });
 

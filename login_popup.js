@@ -183,10 +183,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const storedData = await new Promise(resolve => 
 				chrome.storage.sync.get(null, resolve)
 			);
-			
+			console.log("storedData:", storedData);
+			debugger;
 			if (storedData?.[CONFIG.STORAGE_KEYS.USER_EMAIL] === inputEmail) {
 				console.log("User exists - checking auth status");
-				await checkAuthStatus(inputEmail);
+				await checkAuthStatus(inputEmail, storedData?.jwt);
 			} else {
 				console.log("Email changed - requesting new magic link");
 				await requestMagicLinkForEmail(inputEmail);
@@ -201,18 +202,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 	/**
 	 * Check authentication status
 	 * @param {string} email - User email
+	 * @param {string} jwt - JSON Web Token for authentication
 	 */
-	async function checkAuthStatus(email) {
+	async function checkAuthStatus(email, jwt) {
 		if (!email) {
 			console.error('No email provided to checkAuthStatus');
 			return;
 		}
 
 		try {
-			const response = await fetchWithRetry(
-				`${CONFIG.API_BASE_URL}/api/get_auth_status?email=${encodeURIComponent(email)}`,
-				{ method: 'GET' }
-			);
+			const url = `${CONFIG.API_BASE_URL}/api/get_auth_status?email=${encodeURIComponent(email)}`;
+			const options = { 
+				method: 'GET',
+				headers: {}
+			};
+			
+			// Add JWT if available
+			if (jwt) {
+				options.headers['Authorization'] = `Bearer ${jwt}`;
+				console.log('[login_popup.js] jwt:', jwt);
+			}
+			
+			const response = await fetchWithRetry(url, options);
 
 			const data = await response.json();
 			console.log('[login_popup.js] auth status data:', data);
@@ -326,8 +337,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 			const data = await response.json();
 			showMessage(data.message + ' Check your email inbox!', 'success');
-			console.log("Magic link sent");
-			
+			console.log(data);
+			debugger;
 			// Clear any existing polling
 			clearPolling();
 			
