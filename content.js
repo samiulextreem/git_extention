@@ -17,7 +17,8 @@ const CONFIG = {
 const state = {
     isPremium: false,
     isLoggedIn: false,
-    userEmail: null
+    userEmail: null,
+    productInfo: null
 };
 
 // Initialize the extension based on current URL
@@ -74,10 +75,25 @@ async function loadApiUrl() {
 async function loadUserData() {
     try {
         const result = await chrome.storage.sync.get(CONFIG.STORAGE_KEYS.USER_EMAIL);
+        const premiumResult = await chrome.storage.local.get([
+            CONFIG.STORAGE_KEYS.IS_PREMIUM,
+            CONFIG.STORAGE_KEYS.PRODUCT_INFO
+        ]);
         
         if (result[CONFIG.STORAGE_KEYS.USER_EMAIL]) {
             state.userEmail = result[CONFIG.STORAGE_KEYS.USER_EMAIL];
             state.isLoggedIn = true;
+            
+            // Load premium status
+            if (premiumResult[CONFIG.STORAGE_KEYS.IS_PREMIUM] !== undefined) {
+                state.isPremium = premiumResult[CONFIG.STORAGE_KEYS.IS_PREMIUM];
+            }
+            
+            // Load product info
+            if (premiumResult[CONFIG.STORAGE_KEYS.PRODUCT_INFO]) {
+                state.productInfo = premiumResult[CONFIG.STORAGE_KEYS.PRODUCT_INFO];
+                console.log("Loaded product info from storage:", state.productInfo);
+            }
             
             console.log("User email loaded:", state.userEmail);
             
@@ -102,6 +118,19 @@ async function verifyPayment(userEmail) {
     console.log('Verifying payment for:', userEmail);
     
     try {
+        // First check trial status
+        const trialStatus = await checkTrialStatus(userEmail);
+        
+        if (trialStatus.expired) {
+            console.log('Trial has expired, checking payment status');
+        } else {
+            console.log('Trial is active, setting as premium');
+            // If trial is still active, set as premium
+            await updatePremiumStatus(true, { product_type: 'trial' });
+            updateUIForPremiumStatus();
+            return { success: true, product_info: { product_type: 'trial' } };
+        }
+        
         const response = await fetch(`${CONFIG.API_BASE_URL}/verify-payment?email=${encodeURIComponent(userEmail)}`);
         
         if (!response.ok) {
@@ -128,17 +157,28 @@ async function verifyPayment(userEmail) {
         } else {
             console.warn('Unexpected response format:', data);
             state.isPremium = false;
+            await updatePremiumStatus(false, { product_type: 'trial_expired' });
+            updateUIForPremiumStatus();
         }
         
         return data;
     } catch (error) {
         console.error('Error checking payment status:', error);
-        return {success: false, product_info: null}; // Return default value on error
+        state.isPremium = false;
+        await updatePremiumStatus(false, { product_type: 'trial_expired' });
+        updateUIForPremiumStatus();
+        return {success: false, product_info: { product_type: 'trial_expired' }}; // Return default value on error
     }
 }
 
 // Update premium status in storage
 async function updatePremiumStatus(isPremium, productInfo) {
+    // Update state with the product info
+    state.isPremium = isPremium;
+    state.productInfo = productInfo;
+    
+    console.log('Setting product info to state:', productInfo);
+    
     return new Promise((resolve, reject) => {
         chrome.storage.local.set({
             [CONFIG.STORAGE_KEYS.IS_PREMIUM]: isPremium,
@@ -157,7 +197,14 @@ async function updatePremiumStatus(isPremium, productInfo) {
 
 // Update UI elements based on premium status
 function updateUIForPremiumStatus() {
-    const adBanner = document.querySelector('.ad-banner-container');
+    // Check if the ad banner exists, if not create it
+    let adBanner = document.querySelector('.ad-banner-container');
+    
+    if (!adBanner && !state.isPremium) {
+        createAdBanner();
+        adBanner = document.querySelector('.ad-banner-container');
+    }
+    
     if (adBanner) {
         if (state.isPremium) {
             adBanner.style.display = 'none';
@@ -167,6 +214,51 @@ function updateUIForPremiumStatus() {
             console.log('User is not premium, showing ads');
         }
     }
+}
+
+// Create the ad banner
+function createAdBanner() {
+    const adBannerContainer = document.createElement("div");
+    adBannerContainer.className = "ad-banner-container";
+    adBannerContainer.style.cssText = `
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: #1e1e2e;
+        padding: 10px;
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+        color: white;
+        font-size: 14px;
+        text-align: center;
+    `;
+    
+    const messageContent = `
+        <div style="margin-right: 20px;">
+            Your trial has expired. Upgrade to continue using premium features.
+        </div>
+        <button id="upgrade-button" style="
+            background-color: #10a37f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        ">Upgrade Now</button>
+    `;
+    
+    adBannerContainer.innerHTML = messageContent;
+    document.body.appendChild(adBannerContainer);
+    
+    // Add click event to the upgrade button
+    document.getElementById("upgrade-button").addEventListener("click", () => {
+        showProductSelectionOverlay();
+    });
 }
 
 // Listen for changes to the premium status
@@ -180,6 +272,13 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
             
             // Update UI based on premium status
             updateUIForPremiumStatus();
+        }
+        
+        // Handle product info changes
+        if (changes[CONFIG.STORAGE_KEYS.PRODUCT_INFO]) {
+            const productInfo = changes[CONFIG.STORAGE_KEYS.PRODUCT_INFO].newValue;
+            state.productInfo = productInfo; // Update the state
+            console.log('Product info changed:', productInfo);
         }
     }
 });
@@ -949,7 +1048,7 @@ function createMenuButton() {
                     border-radius: 8px; display: flex; align-items: center; justify-content: center; 
                     border: 1px dashed rgba(255, 255, 255, 0.3);">
             <span style="color: rgba(255, 255, 255, 0.7); font-size: 14px; text-align: center;">
-                TRIAL VERSION
+                AD banner
             </span>
         </div>
     `;
@@ -2953,9 +3052,32 @@ function showSettingsOverlay() {
                 <div style="background-color: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 0.5rem; margin-top: 1rem;">
                     <p style="color: #9ca3af; margin-bottom: 0.5rem;">Subscription Status</p>
                     <p style="color: ${state.isPremium ? '#10b981' : '#ef4444'}; font-weight: 500;">
-                        ${state.isPremium ? 'Premium' : 'Free'}
+                        ${(() => {
+                            if (state.isPremium) {
+                                // Check if it's a trial
+                                if (state.productInfo && state.productInfo.product_type === 'trial') {
+                                    return 'Trial';
+                                }
+                                return 'Premium';
+                            } else {
+                                return 'Free';
+                            }
+                        })()}
                     </p>
                 </div>
+                ${(() => {
+                    // Show trial time remaining if in trial mode
+                    const trialTimeRemaining = getTrialTimeRemaining();
+                    if (trialTimeRemaining) {
+                        return `
+                        <div style="background-color: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 0.5rem; margin-top: 1rem;">
+                            <p style="color: #9ca3af; margin-bottom: 0.5rem;">Trial Time Remaining</p>
+                            <p style="color: #fbbf24; font-weight: 500;">${trialTimeRemaining}</p>
+                        </div>
+                        `;
+                    }
+                    return '';
+                })()}
             </div>
 
             <div class="settings-section" style="margin-bottom: 2rem;">
@@ -2976,7 +3098,42 @@ function showSettingsOverlay() {
                 <h3 style="color: #e5e7eb; margin-bottom: 1rem; font-size: 1.1rem;">Product Information</h3>
                 <div style="background-color: rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 0.5rem;">
                     <p style="color: #9ca3af; margin-bottom: 0.5rem;">Current Plan</p>
-                    <p style="color: #f9fafb; font-weight: 500;">${state.isPremium ? 'Premium' : 'Free'}</p>
+                    <p style="color: #f9fafb; font-weight: 500;">
+                        ${(() => {
+                            console.log("Product Info in settings:", state.productInfo);
+                            
+                            // Premium user with trial
+                            if (state.isPremium && state.productInfo && state.productInfo.product_type === 'trial') {
+                                return 'Trial';
+                            }
+                            // Premium user with paid plan
+                            else if (state.isPremium && state.productInfo) {
+                                // Try to access product_info directly
+                                if (typeof state.productInfo === 'string') {
+                                    return state.productInfo; // If it's already a string
+                                }
+                                else if (state.productInfo.product_info) {
+                                    return state.productInfo.product_info; // Access nested property
+                                }
+                                else {
+                                    // Fallback to stringifying the whole object for debugging
+                                    return JSON.stringify(state.productInfo);
+                                }
+                            }
+                            // Premium user without specific product info
+                            else if (state.isPremium) {
+                                return 'Premium';
+                            }
+                            // Non-premium with expired trial
+                            else if (state.productInfo && state.productInfo.product_type === 'trial_expired') {
+                                return 'Trial Expired';
+                            }
+                            // Default non-premium
+                            else {
+                                return 'Free';
+                            }
+                        })()}
+                    </p>
                 </div>
             </div>
         </div>
@@ -3141,3 +3298,103 @@ chrome.storage.sync.get(['autoHidePrompt'], (result) => {
 
 // Start observing the document for menu button changes
 dommenubuttoncreator.observe(document.documentElement, { childList: true, subtree: true });
+
+async function pullDataFromFirebaseServer(email) {
+    if (!email) throw new Error('Email is required for data sync');
+
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/pull_data_from_firebase?email=${encodeURIComponent(email)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error syncing data:', error);
+        throw new Error('Failed to sync data with server');
+    }
+}
+
+// Function to check if trial has expired
+async function checkTrialStatus(userEmail) {
+    try {
+        const userData = await pullDataFromFirebaseServer(userEmail);
+        
+        if (userData && userData.trial_time) {
+            const trialTime = new Date(userData.trial_time);
+            const currentTime = new Date();
+            
+            // Store the trial expiry time in the state for later use
+            state.trialExpiry = trialTime;
+            
+            // Check if trial has expired
+            if (currentTime > trialTime) {
+                console.log('Trial has expired:', trialTime);
+                return {
+                    expired: true,
+                    userData: userData
+                };
+            } else {
+                console.log('Trial is still active, expires on:', trialTime);
+                return {
+                    expired: false,
+                    userData: userData
+                };
+            }
+        } else {
+            console.log('No trial time found in user data');
+            return {
+                expired: true,
+                userData: userData
+            };
+        }
+    } catch (error) {
+        console.error('Error checking trial status:', error);
+        return {
+            expired: true,
+            userData: null
+        };
+    }
+}
+
+// Function to calculate and format remaining trial time
+function getTrialTimeRemaining() {
+    if (state.productInfo && state.productInfo.product_type === 'trial') {
+        try {
+            // Get trial expiration time from the state or pull from server
+            if (state.trialExpiry) {
+                const trialTime = new Date(state.trialExpiry);
+                const currentTime = new Date();
+                
+                if (trialTime > currentTime) {
+                    // Calculate the difference in milliseconds
+                    const timeDiff = trialTime - currentTime;
+                    
+                    // Convert to days, hours, minutes
+                    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                    
+                    // Format the time remaining
+                    if (days > 0) {
+                        return `${days} day${days !== 1 ? 's' : ''} ${hours} hour${hours !== 1 ? 's' : ''}`;
+                    } else if (hours > 0) {
+                        return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+                    } else {
+                        return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error calculating trial time remaining:', error);
+        }
+    }
+    
+    return null; // Return null if not in trial or can't calculate
+}

@@ -338,7 +338,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 			const data = await response.json();
 			showMessage(data.message + ' Check your email inbox!', 'success');
 			console.log(data);
-			debugger;
 			// Clear any existing polling
 			clearPolling();
 			
