@@ -1,5 +1,6 @@
-// content.js - Main functionality for the Chrome extension
+
 console.log("Content script loaded on:", window.location.href);
+
 
 // Configuration
 const CONFIG = {
@@ -525,12 +526,26 @@ function updateFolderdata(checkedfolders, uncheckedfolders, chatTitle, chatHref,
     });
 }
 
+// Helper function to verify data structure
+function isValidFolderStructure(data) {
+    return Boolean(
+        data && 
+        data.folder_structure && 
+        data.folder_structure.chatgpt && 
+        Array.isArray(data.folder_structure.chatgpt.Folders)
+    );
+}
+
 async function fetchFromChromeStorage() {
     try {
         let response = await pullDataFromChromeStorage();
         
-        // Check if response and its structure are defined
-        if (!response || !response.folder_structure || !response.folder_structure.chatgpt || !response.folder_structure.chatgpt.Folders) {
+        // Safely log the response first
+        console.log('[fetchFromChromeStorage] raw response:', response);
+        
+        // Check if response and its structure are defined using our helper
+        if (!isValidFolderStructure(response)) {
+            console.log('[fetchFromChromeStorage] Missing or incomplete folder structure - creating default');
             // Initialize default folder structure if it doesn't exist
             const defaultFolders = ["Work", "Personal", "Projects", "Misc"];
             const defaultFolderStructure = {
@@ -546,20 +561,29 @@ async function fetchFromChromeStorage() {
             
             // Save the default structure to Chrome storage
             await chrome.storage.sync.set(defaultFolderStructure);
-            //console.log("[Overlay] folder structure not found. Pushed default folders:", defaultFolders);
             response = await pullDataFromChromeStorage(); // Fetch again after setting defaults
+            console.log('[fetchFromChromeStorage] Created and loaded default structure:', response.folder_structure.chatgpt.Folders);
         } else {
             let folderNames = response.folder_structure.chatgpt.Folders.map(folder => folder.Folder_Name);
-            // console.log("[Overlay] folder structure already exists as shown here", folderNames);
+            console.log("[fetchFromChromeStorage] Folder structure exists with folders:", folderNames);
         }
 
         return response;
         
     } catch (error) {
-        console.error("[Overlay] Error fetching folders from Chrome storage:", error);
+        console.error("[fetchFromChromeStorage] Error fetching folders from Chrome storage:", error);
         return { folder_structure: { chatgpt: { Folders: [] } } }; // Return a safe default structure
     }
 }
+
+async function pullDataFromChromeStorage() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(null, (stored_data) => {
+            resolve(stored_data); // Resolve with the data
+        });
+    });
+}
+
 function getChatTitles(userData, folderName) {
     // Find the folder that matches the given folder name
     const folder = userData.folder_structure.chatgpt.Folders.find(f => f.Folder_Name === folderName);
@@ -874,14 +898,6 @@ function manageChatManagementOverlay(action) {
     
 
 }
-async function pullDataFromChromeStorage() {
-    return new Promise((resolve) => {
-        chrome.storage.sync.get(null, (stored_data) => {
-            resolve(stored_data); // Resolve with the data
-        });
-    });
-}
-
 
 async function checkAuthStatus(email) {
     try {
@@ -2123,7 +2139,10 @@ async function saveFolderColor(index, colorValue, folderName = null) {
     // If we're in the folder management overlay, we can use the index directly
     
     try {
-        const response = await fetchFromChromeStorage();
+        // Use our helper to ensure we have valid data before proceeding
+        const response = await ensureDataLoaded();
+        
+        // Now we can safely access the folders
         const existingFolders = response.folder_structure.chatgpt.Folders;
         
         if (folderName) {
@@ -2144,17 +2163,24 @@ async function saveFolderColor(index, colorValue, folderName = null) {
             if (typeof folders !== 'undefined' && folders && folders[index]) {
                 folders[index].color = colorValue;
             }
+            console.log(`[saveFolderColor] Updated color for folder index ${index} to ${colorValue}`);
         } else {
-            console.error('[saveFolderColor] Invalid index or folder not found');
+            console.error('[saveFolderColor] Invalid folder index or name provided');
             return false;
         }
         
-        // Save back to Chrome storage
-        await chrome.storage.sync.set(response);
-        console.log('[saveFolderColor] Saved updated folder color to Chrome storage');
+        // Save the updated folders back to storage
+        pushToChromeStorage({
+            "folder_structure": {
+                "chatgpt": {
+                    "Folders": existingFolders
+                }
+            }
+        });
+        
         return true;
     } catch (error) {
-        console.error('[saveFolderColor] Error saving folder color:', error);
+        console.error('[saveFolderColor] Error updating folder color:', error);
         return false;
     }
 }
@@ -3398,3 +3424,64 @@ function getTrialTimeRemaining() {
     
     return null; // Return null if not in trial or can't calculate
 }
+
+// Utility function to ensure we have valid data before proceeding
+async function ensureDataLoaded() {
+    console.log('[ensureDataLoaded] Making sure we have valid folder structure data');
+    let data = await fetchFromChromeStorage();
+    
+    // Double check that fetchFromChromeStorage gave us valid data
+    if (!isValidFolderStructure(data)) {
+        console.error('[ensureDataLoaded] Still unable to get valid folder structure after fetch attempt');
+        throw new Error('Unable to load required data from Chrome storage');
+    }
+    
+    console.log('[ensureDataLoaded] Successfully loaded folder structure with folders:', 
+        data.folder_structure.chatgpt.Folders.map(f => f.Folder_Name));
+    
+    return data;
+}
+
+// Example of how to safely use Chrome storage data before proceeding with functionality
+async function initializeAndProcessData() {
+    try {
+        console.log('Initializing and ensuring data is loaded');
+        
+        // Step 1: Make sure we have valid data
+        const data = await ensureDataLoaded();
+        
+        // Step 2: Now you can safely use the data
+        console.log('Successfully loaded data with folders:', 
+            data.folder_structure.chatgpt.Folders.map(folder => folder.Folder_Name));
+        
+        // Continue with your functionality that depends on this data
+        return data;
+    } catch (error) {
+        console.error('Failed to initialize data:', error);
+        // Handle the error appropriately, maybe show a message to the user
+        return null;
+    }
+}
+
+// Example implementation of how to use ensureDataLoaded in a document ready or initialization function
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // First ensure we have valid data before proceeding with any functionality that needs it
+        const data = await ensureDataLoaded();
+        
+        if (data) {
+            console.log('Data is ready, safe to proceed with UI initialization and other features');
+            // Here you would call your UI init functions or other features that depend on this data
+            
+            // Example: Initialize your UI components that depend on folder data
+            // initializeFolderUI(data.folder_structure.chatgpt.Folders);
+        } else {
+            console.error('Failed to load required data, some features may not work correctly');
+            // Handle the error appropriately - show a message to the user or limit functionality
+        }
+    } catch (error) {
+        console.error('Error during initialization:', error);
+        // Handle error - maybe show an error notification to the user
+    }
+});
+

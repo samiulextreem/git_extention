@@ -1,6 +1,12 @@
 // background.js - Background service worker for the extension
 import { initializeConfig, getConfigFromStorage } from './utils/config_loader.js';
 
+
+chrome.storage.sync.get(null, (stored_data) => {
+    console.log('raw :', stored_data);
+});
+
+
 // Configuration
 const CONFIG = {
     STORAGE_KEYS: {
